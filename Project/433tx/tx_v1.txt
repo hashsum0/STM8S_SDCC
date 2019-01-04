@@ -1,0 +1,126 @@
+#include "inc/stm8s.h"
+#include "inc/clk_init.h"
+#include "inc/gpio_init.h"
+//#include "inc/uart1.h"
+//~ volatile unsigned int fl=0;
+//~ ///******************************************************timer_interrupt*/
+void TIM2_update(void) __interrupt(TIM2_OVR_UIF_IRQ)
+{
+    TIM2_SR1 &= ~TIM_SR1_UIF;
+}
+
+void tx_set_bit()
+{
+            PD_ODR|=(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x0F;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+            PD_ODR&=~(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x08;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+}
+void tx_cli_bit()
+{
+            PD_ODR|=(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x08;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+            PD_ODR&=~(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x08;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+}
+void tx_start_bit()
+{
+    int i;
+    for(i=0;i<8;i++)
+    {
+            PD_ODR|=(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x02;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+            PD_ODR&=~(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x08;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");  
+    }
+            PD_ODR|=(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x2f;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+            PD_ODR&=~(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0x08;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+}
+void tx_stop_bit()
+{
+
+            PD_ODR&=~(1<<4);
+            TIM2_ARRH = 0x00;
+            TIM2_ARRL = 0xff;
+            TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+}
+void main(void)
+{
+    
+    //~ unsigned int data=0b10010100;
+    //~ int i;
+	clk_init();
+	GPIO_init();
+    //uart1_init();//1200bod
+    TIM2_PSCR = 10;
+    TIM2_CR1|=TIM_CR1_OPM; 
+    TIM2_IER |= TIM_IER_UIE;
+    //~ PD_ODR|=(1<<0);
+    //~ delay(5);
+    //~ PD_ODR&=~(1<<0);
+    //~ delay(5);
+    
+            //~ PD_ODR|=(1<<0);
+            //~ TIM2_ARRH = 0x00;
+            //~ TIM2_ARRL = 0x80;
+            //~ TIM2_CR1 |= TIM_CR1_CEN;
+        //~ __asm__("wfi\n");
+            //~ PD_ODR&=~(1<<0);
+            //~ TIM2_ARRH = 0x00;
+            //~ TIM2_ARRL = 0x05;
+            //~ TIM2_CR1 |= TIM_CR1_CEN;
+        //~ __asm__("wfi\n");
+        //~ for(i=7;i>=0;i--)
+        //~ {
+            //~ if(data&(1<<i))tx_set_bit();
+            //~ if(!(data&(1<<i)))tx_cli_bit();
+        //~ }
+        //~ PD_ODR&=~(1<<0);
+            //~ TIM2_ARRH = 0x00;
+            //~ TIM2_ARRL = 0xf0;
+            //~ TIM2_CR1 |= TIM_CR1_CEN;
+        //~ PD_ODR&=~(1<<0);
+    while(1)
+    {
+        
+        tx_start_bit();
+        tx_set_bit();
+        tx_cli_bit();
+        tx_cli_bit();
+        tx_set_bit();
+        tx_cli_bit();
+        tx_set_bit();
+        tx_cli_bit();
+        tx_cli_bit();
+        tx_stop_bit();
+    }
+       
+	
+}

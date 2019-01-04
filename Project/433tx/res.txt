@@ -1,0 +1,107 @@
+#include "inc/stm8s.h"
+#include "inc/clk_init.h"
+#include "inc/gpio_init.h"
+#include "inc/7sig.h"
+#include "inc/uart1.h"
+///******************************************************global_variable*/
+volatile unsigned int f[2],d=0;
+///******************************************************timer_interrupt*/
+//INTERRUPT_HANDLER(TIM2_OVR_UIF,13)         
+//{
+
+
+   //TIM2_SR1&=~TIM_SR1_UIF; 
+                         
+   //out7seg(f,d);
+  //TIM2_ARRH=0x60;           
+  //TIM2_ARRL=0x00;
+  //if((d++)>2)d=0;
+  //TIM2_CR1|=TIM_CR1_CEN; 
+//}
+///*******************************************************exti_interrupt*/
+INTERRUPT_HANDLER(EXTI,4)         
+{
+
+    //~ if(!(PB_IDR&(1<<7)))
+    //~ {
+        //~ TIM2_CR1|=TIM_CR1_CEN;
+        
+        //~ PD_ODR&=~(1<<0);
+    //~ }
+   // if(PB_IDR&(1<<7))
+   // {
+        __asm__("sim\n");
+        TIM2_CR1&=~TIM_CR1_CEN;
+        f[0]=TIM2_CNTRH;
+        f[1]=TIM2_CNTRL;
+        TIM2_CNTRH=0x00;
+        TIM2_CNTRL=0x00;
+        __asm__("rim\n");
+        TIM2_CR1|=TIM_CR1_CEN;
+        d=1;
+         
+        
+   // }
+   
+	  
+}
+///***********************************************************timer_init*/
+void TIME_init(void)
+{
+  TIM2_PSCR=0x08;         
+  TIM2_ARRH=0xff;           
+  TIM2_ARRL=0x00;
+  TIM2_CR1|=TIM_CR1_OPM;     
+  //TIM2_IER|=TIM_IER_UIE;     
+}
+void delay(int t)
+{
+	int i,s;
+	for(i=0;i<t;i++)
+	{
+		for(s=0;s<1512;s++)
+		{
+		}
+	}
+}
+
+/*****************************************************************main*/
+
+void main(void)
+{
+    int c=0,z=0;
+    unsigned char data[16];
+	clk_init();
+__asm__("sim\n");
+	GPIO_init();
+	TIME_init();
+	EXTI_CR1=4;
+    uart1_init();
+__asm__("rim\n");
+while(1)
+	{
+        
+        //if(z>2)c=0,z=0,data[3]='\n',data[4]='\r',tx(data);
+        if(d)
+        {
+            if(f[0]==11)c=1;
+            if(f[0]==5 && c==1)data[z]=49,z++;
+            if(f[0]==7 && c==1)data[z]=48,z++;
+            if(z>2)c=0,z=0,data[3]='\n',data[4]='\r',tx(data);
+            f[0]=0x00;
+            //~ data[0]=f[0]%1000/100+48;
+            //~ data[1]=f[0]%100/10+48;
+            //~ data[2]=f[0]%10/1+48;
+            //~ data[3]=f[0]%1+48;
+            //~ data[4]=f[1]%1000/100+48;
+            //~ data[5]=f[1]%100/10+48;
+            //~ data[6]=f[1]%10/1+48;
+            //~ data[7]='\n';
+            //~ data[8]='\r';
+            //~ tx(data);
+            d=0;
+            
+        }
+       
+	}
+}

@@ -1,0 +1,627 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 3.8.0 #10562 (Linux)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module main
+                                      6 	.optsdcc -mstm8
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _main
+                                     12 	.globl _delay
+                                     13 	.globl _out7seg
+                                     14 	.globl _ADC_read
+                                     15 	.globl _ADC_INIT
+                                     16 	.globl _gpio_init
+                                     17 	.globl _clk_init
+                                     18 ;--------------------------------------------------------
+                                     19 ; ram data
+                                     20 ;--------------------------------------------------------
+                                     21 	.area DATA
+                                     22 ;--------------------------------------------------------
+                                     23 ; ram data
+                                     24 ;--------------------------------------------------------
+                                     25 	.area INITIALIZED
+                                     26 ;--------------------------------------------------------
+                                     27 ; Stack segment in internal ram 
+                                     28 ;--------------------------------------------------------
+                                     29 	.area	SSEG
+      000000                         30 __start__stack:
+      000000                         31 	.ds	1
+                                     32 
+                                     33 ;--------------------------------------------------------
+                                     34 ; absolute external ram data
+                                     35 ;--------------------------------------------------------
+                                     36 	.area DABS (ABS)
+                                     37 
+                                     38 ; default segment ordering for linker
+                                     39 	.area HOME
+                                     40 	.area GSINIT
+                                     41 	.area GSFINAL
+                                     42 	.area CONST
+                                     43 	.area INITIALIZER
+                                     44 	.area CODE
+                                     45 
+                                     46 ;--------------------------------------------------------
+                                     47 ; interrupt vector 
+                                     48 ;--------------------------------------------------------
+                                     49 	.area HOME
+      000000                         50 __interrupt_vect:
+      000000 82v00u00u00             51 	int s_GSINIT ; reset
+                                     52 ;--------------------------------------------------------
+                                     53 ; global & static initialisations
+                                     54 ;--------------------------------------------------------
+                                     55 	.area HOME
+                                     56 	.area GSINIT
+                                     57 	.area GSFINAL
+                                     58 	.area GSINIT
+      000000                         59 __sdcc_gs_init_startup:
+      000000                         60 __sdcc_init_data:
+                                     61 ; stm8_genXINIT() start
+      000000 AEr00r00         [ 2]   62 	ldw x, #l_DATA
+      000003 27 07            [ 1]   63 	jreq	00002$
+      000005                         64 00001$:
+      000005 72 4FuFFuFF      [ 1]   65 	clr (s_DATA - 1, x)
+      000009 5A               [ 2]   66 	decw x
+      00000A 26 F9            [ 1]   67 	jrne	00001$
+      00000C                         68 00002$:
+      00000C AEr00r00         [ 2]   69 	ldw	x, #l_INITIALIZER
+      00000F 27 09            [ 1]   70 	jreq	00004$
+      000011                         71 00003$:
+      000011 D6uFFuFF         [ 1]   72 	ld	a, (s_INITIALIZER - 1, x)
+      000014 D7uFFuFF         [ 1]   73 	ld	(s_INITIALIZED - 1, x), a
+      000017 5A               [ 2]   74 	decw	x
+      000018 26 F7            [ 1]   75 	jrne	00003$
+      00001A                         76 00004$:
+                                     77 ; stm8_genXINIT() end
+                                     78 	.area GSFINAL
+      000000 CCr00r04         [ 2]   79 	jp	__sdcc_program_startup
+                                     80 ;--------------------------------------------------------
+                                     81 ; Home
+                                     82 ;--------------------------------------------------------
+                                     83 	.area HOME
+                                     84 	.area HOME
+      000004                         85 __sdcc_program_startup:
+      000004 CCr02r1F         [ 2]   86 	jp	_main
+                                     87 ;	return from main will return to caller
+                                     88 ;--------------------------------------------------------
+                                     89 ; code
+                                     90 ;--------------------------------------------------------
+                                     91 	.area CODE
+                                     92 ;	inc/clk_init.h: 7: void clk_init(void){    
+                                     93 ;	-----------------------------------------
+                                     94 ;	 function clk_init
+                                     95 ;	-----------------------------------------
+      000000                         96 _clk_init:
+                                     97 ;	inc/clk_init.h: 8: CLK_ECKR|=CLK_ECKR_HSEEN;            
+      000000 72 10 50 C1      [ 1]   98 	bset	20673, #0
+                                     99 ;	inc/clk_init.h: 9: CLK_SWCR|=CLK_SWCR_SWEN;               
+      000004 72 12 50 C5      [ 1]  100 	bset	20677, #1
+                                    101 ;	inc/clk_init.h: 10: while((CLK_ECKR & CLK_ECKR_HSERDY) == 0) {} 
+      000008                        102 00101$:
+      000008 C6 50 C1         [ 1]  103 	ld	a, 0x50c1
+      00000B A5 02            [ 1]  104 	bcp	a, #0x02
+      00000D 27 F9            [ 1]  105 	jreq	00101$
+                                    106 ;	inc/clk_init.h: 11: CLK_CKDIVR = 0;                    
+      00000F 35 00 50 C6      [ 1]  107 	mov	0x50c6+0, #0x00
+                                    108 ;	inc/clk_init.h: 12: CLK_SWR = 0xB4;                    
+      000013 35 B4 50 C4      [ 1]  109 	mov	0x50c4+0, #0xb4
+                                    110 ;	inc/clk_init.h: 13: while ((CLK_SWCR & CLK_SWCR_SWIF) == 0){}
+      000017                        111 00104$:
+      000017 C6 50 C5         [ 1]  112 	ld	a, 0x50c5
+      00001A A5 08            [ 1]  113 	bcp	a, #0x08
+      00001C 27 F9            [ 1]  114 	jreq	00104$
+                                    115 ;	inc/clk_init.h: 14: CLK_CSSR|=CLK_CSSR_CSSEN;
+      00001E 72 10 50 C8      [ 1]  116 	bset	20680, #0
+                                    117 ;	inc/clk_init.h: 15: }
+      000022 81               [ 4]  118 	ret
+                                    119 ;	inc/gpio_init.h: 24: void gpio_init(void)
+                                    120 ;	-----------------------------------------
+                                    121 ;	 function gpio_init
+                                    122 ;	-----------------------------------------
+      000023                        123 _gpio_init:
+                                    124 ;	inc/gpio_init.h: 27: PA_DDR = 0xFF;                                                        //_______PORT_IN
+      000023 35 FF 50 02      [ 1]  125 	mov	0x5002+0, #0xff
+                                    126 ;	inc/gpio_init.h: 28: PA_CR1 = 0xFF;                                                       //_______DDR________________CR1______________CR2___________FUNCTION  
+      000027 35 FF 50 03      [ 1]  127 	mov	0x5003+0, #0xff
+                                    128 ;	inc/gpio_init.h: 29: PA_CR2 = 0x00;                                                      //_______0__________________0________________0_____________bez podtiyzhki,bez prerbIvanii 
+      00002B 35 00 50 04      [ 1]  129 	mov	0x5004+0, #0x00
+                                    130 ;	inc/gpio_init.h: 31: PB_DDR = 0x00;                                                        //_______0__________________0________________1_____________bez podtiyzhki,c prerbIvaniem 
+      00002F 35 00 50 07      [ 1]  131 	mov	0x5007+0, #0x00
+                                    132 ;	inc/gpio_init.h: 32: PB_CR1 = 0x00;                                                       //_______0__________________1________________1_____________c podtiyzhki,c prerbIvanii
+      000033 35 00 50 08      [ 1]  133 	mov	0x5008+0, #0x00
+                                    134 ;	inc/gpio_init.h: 33: PB_CR2 = 0x00;                                                      //_______PORT_OUT
+      000037 35 00 50 09      [ 1]  135 	mov	0x5009+0, #0x00
+                                    136 ;	inc/gpio_init.h: 35: PC_DDR = 0xFF;                                                        //_______1__________________0________________0_____________otkritiy stok
+      00003B 35 FF 50 0C      [ 1]  137 	mov	0x500c+0, #0xff
+                                    138 ;	inc/gpio_init.h: 36: PC_CR1 = 0xFF;                                                       //_______1__________________1________________0_____________dvuhtakthiy vihod
+      00003F 35 FF 50 0D      [ 1]  139 	mov	0x500d+0, #0xff
+                                    140 ;	inc/gpio_init.h: 37: PC_CR2 = 0x00;                                                      //_______1__________________X________________1_____________skorost' do 10MHz
+      000043 35 00 50 0E      [ 1]  141 	mov	0x500e+0, #0x00
+                                    142 ;	inc/gpio_init.h: 39: PD_DDR = 0x3F;   
+      000047 35 3F 50 11      [ 1]  143 	mov	0x5011+0, #0x3f
+                                    144 ;	inc/gpio_init.h: 40: PD_CR1 = 0xFF;  
+      00004B 35 FF 50 12      [ 1]  145 	mov	0x5012+0, #0xff
+                                    146 ;	inc/gpio_init.h: 41: PD_CR2 = 0x00; 
+      00004F 35 00 50 13      [ 1]  147 	mov	0x5013+0, #0x00
+                                    148 ;	inc/gpio_init.h: 43: PE_DDR = 0xFF;   
+      000053 35 FF 50 16      [ 1]  149 	mov	0x5016+0, #0xff
+                                    150 ;	inc/gpio_init.h: 44: PE_CR1 = 0xFF;  
+      000057 35 FF 50 17      [ 1]  151 	mov	0x5017+0, #0xff
+                                    152 ;	inc/gpio_init.h: 45: PE_CR2 = 0x00; 
+      00005B 35 00 50 18      [ 1]  153 	mov	0x5018+0, #0x00
+                                    154 ;	inc/gpio_init.h: 47: PF_DDR = 0xFF;   
+      00005F 35 FF 50 1B      [ 1]  155 	mov	0x501b+0, #0xff
+                                    156 ;	inc/gpio_init.h: 48: PF_CR1 = 0xFF;  
+      000063 35 FF 50 1C      [ 1]  157 	mov	0x501c+0, #0xff
+                                    158 ;	inc/gpio_init.h: 49: PF_CR2 = 0x00; 
+      000067 35 00 50 1D      [ 1]  159 	mov	0x501d+0, #0x00
+                                    160 ;	inc/gpio_init.h: 54: }
+      00006B 81               [ 4]  161 	ret
+                                    162 ;	inc/ADC.h: 51: void ADC_INIT(void){
+                                    163 ;	-----------------------------------------
+                                    164 ;	 function ADC_INIT
+                                    165 ;	-----------------------------------------
+      00006C                        166 _ADC_INIT:
+                                    167 ;	inc/ADC.h: 52: ADC_CSR_CH0;           //Выбераем канал
+      00006C C6 54 00         [ 1]  168 	ld	a, 0x5400
+      00006F A4 F0            [ 1]  169 	and	a, #0xf0
+      000071 C7 54 00         [ 1]  170 	ld	0x5400, a
+                                    171 ;	inc/ADC.h: 53: ADC_CR1_SPSEL8;  //Делитель на 18            
+      000074 72 1C 54 01      [ 1]  172 	bset	21505, #6
+                                    173 ;	inc/ADC.h: 54: ADC_TDRL_DIS(0);       //Отключаем тригер Шмидта
+      000078 72 10 54 07      [ 1]  174 	bset	21511, #0
+                                    175 ;	inc/ADC.h: 55: ADC_CR2_ALIGN_LEFT;    //Выравнивание по левому краю
+      00007C 72 17 54 02      [ 1]  176 	bres	21506, #3
+                                    177 ;	inc/ADC.h: 56: ADC_CR1_ADON_ON;       //Первый запуск ADC
+      000080 72 10 54 01      [ 1]  178 	bset	21505, #0
+                                    179 ;	inc/ADC.h: 57: }
+      000084 81               [ 4]  180 	ret
+                                    181 ;	inc/ADC.h: 58: int ADC_read(void){
+                                    182 ;	-----------------------------------------
+                                    183 ;	 function ADC_read
+                                    184 ;	-----------------------------------------
+      000085                        185 _ADC_read:
+                                    186 ;	inc/ADC.h: 60: ADC_CR1_ADON_ON;
+      000085 C6 54 01         [ 1]  187 	ld	a, 0x5401
+      000088 AA 01            [ 1]  188 	or	a, #0x01
+      00008A C7 54 01         [ 1]  189 	ld	0x5401, a
+                                    190 ;	inc/ADC.h: 61: for(t=0;t<64;t++){
+      00008D 90 AE 00 40      [ 2]  191 	ldw	y, #0x0040
+      000091                        192 00104$:
+                                    193 ;	inc/ADC.h: 62: __asm__("nop\n");
+      000091 9D               [ 1]  194 	nop
+      000092 93               [ 1]  195 	ldw	x, y
+      000093 5A               [ 2]  196 	decw	x
+      000094 90 93            [ 1]  197 	ldw	y, x
+                                    198 ;	inc/ADC.h: 61: for(t=0;t<64;t++){
+      000096 5D               [ 2]  199 	tnzw	x
+      000097 26 F8            [ 1]  200 	jrne	00104$
+                                    201 ;	inc/ADC.h: 64: data=ADC_DRH;
+      000099 C6 54 04         [ 1]  202 	ld	a, 0x5404
+      00009C 5F               [ 1]  203 	clrw	x
+      00009D 97               [ 1]  204 	ld	xl, a
+                                    205 ;	inc/ADC.h: 65: return data;
+                                    206 ;	inc/ADC.h: 66: }
+      00009E 81               [ 4]  207 	ret
+                                    208 ;	inc/7sig.h: 11: void out7seg(volatile int t,volatile int q)
+                                    209 ;	-----------------------------------------
+                                    210 ;	 function out7seg
+                                    211 ;	-----------------------------------------
+      00009F                        212 _out7seg:
+                                    213 ;	inc/7sig.h: 13: int num=0;
+      00009F 5F               [ 1]  214 	clrw	x
+                                    215 ;	inc/7sig.h: 14: PC_ODR=0xff;
+      0000A0 35 FF 50 0A      [ 1]  216 	mov	0x500a+0, #0xff
+                                    217 ;	inc/7sig.h: 15: PD_ODR|=(1<<3)|(1<<1)|(1<<2);
+      0000A4 C6 50 0F         [ 1]  218 	ld	a, 0x500f
+      0000A7 AA 0E            [ 1]  219 	or	a, #0x0e
+      0000A9 C7 50 0F         [ 1]  220 	ld	0x500f, a
+                                    221 ;	inc/7sig.h: 17: if(q==0) num=(t%1000/100),PD_ODR&=~(1<<1);
+      0000AC 16 05            [ 2]  222 	ldw	y, (0x05, sp)
+      0000AE 26 1E            [ 1]  223 	jrne	00102$
+      0000B0 4B E8            [ 1]  224 	push	#0xe8
+      0000B2 4B 03            [ 1]  225 	push	#0x03
+      0000B4 1E 05            [ 2]  226 	ldw	x, (0x05, sp)
+      0000B6 89               [ 2]  227 	pushw	x
+      0000B7 CDr00r00         [ 4]  228 	call	__modsint
+      0000BA 5B 04            [ 2]  229 	addw	sp, #4
+      0000BC 4B 64            [ 1]  230 	push	#0x64
+      0000BE 4B 00            [ 1]  231 	push	#0x00
+      0000C0 89               [ 2]  232 	pushw	x
+      0000C1 CDr00r00         [ 4]  233 	call	__divsint
+      0000C4 5B 04            [ 2]  234 	addw	sp, #4
+      0000C6 C6 50 0F         [ 1]  235 	ld	a, 0x500f
+      0000C9 A4 FD            [ 1]  236 	and	a, #0xfd
+      0000CB C7 50 0F         [ 1]  237 	ld	0x500f, a
+      0000CE                        238 00102$:
+                                    239 ;	inc/7sig.h: 18: if(q==1) num=(t%100/10),PD_ODR&=~(1<<2);
+      0000CE 89               [ 2]  240 	pushw	x
+      0000CF 1E 07            [ 2]  241 	ldw	x, (0x07, sp)
+      0000D1 5A               [ 2]  242 	decw	x
+      0000D2 85               [ 2]  243 	popw	x
+      0000D3 26 1E            [ 1]  244 	jrne	00104$
+      0000D5 4B 64            [ 1]  245 	push	#0x64
+      0000D7 4B 00            [ 1]  246 	push	#0x00
+      0000D9 1E 05            [ 2]  247 	ldw	x, (0x05, sp)
+      0000DB 89               [ 2]  248 	pushw	x
+      0000DC CDr00r00         [ 4]  249 	call	__modsint
+      0000DF 5B 04            [ 2]  250 	addw	sp, #4
+      0000E1 4B 0A            [ 1]  251 	push	#0x0a
+      0000E3 4B 00            [ 1]  252 	push	#0x00
+      0000E5 89               [ 2]  253 	pushw	x
+      0000E6 CDr00r00         [ 4]  254 	call	__divsint
+      0000E9 5B 04            [ 2]  255 	addw	sp, #4
+      0000EB C6 50 0F         [ 1]  256 	ld	a, 0x500f
+      0000EE A4 FB            [ 1]  257 	and	a, #0xfb
+      0000F0 C7 50 0F         [ 1]  258 	ld	0x500f, a
+      0000F3                        259 00104$:
+                                    260 ;	inc/7sig.h: 19: if(q==2) num=(t%10),PD_ODR&=~(1<<3);
+      0000F3 89               [ 2]  261 	pushw	x
+      0000F4 1E 07            [ 2]  262 	ldw	x, (0x07, sp)
+      0000F6 A3 00 02         [ 2]  263 	cpw	x, #0x0002
+      0000F9 85               [ 2]  264 	popw	x
+      0000FA 26 14            [ 1]  265 	jrne	00106$
+      0000FC 4B 0A            [ 1]  266 	push	#0x0a
+      0000FE 4B 00            [ 1]  267 	push	#0x00
+      000100 1E 05            [ 2]  268 	ldw	x, (0x05, sp)
+      000102 89               [ 2]  269 	pushw	x
+      000103 CDr00r00         [ 4]  270 	call	__modsint
+      000106 5B 04            [ 2]  271 	addw	sp, #4
+      000108 C6 50 0F         [ 1]  272 	ld	a, 0x500f
+      00010B A4 F7            [ 1]  273 	and	a, #0xf7
+      00010D C7 50 0F         [ 1]  274 	ld	0x500f, a
+      000110                        275 00106$:
+                                    276 ;	inc/7sig.h: 20: switch (num)
+      000110 5D               [ 2]  277 	tnzw	x
+      000111 2A 01            [ 1]  278 	jrpl	00153$
+      000113 81               [ 4]  279 	ret
+      000114                        280 00153$:
+      000114 A3 00 09         [ 2]  281 	cpw	x, #0x0009
+      000117 2D 01            [ 1]  282 	jrsle	00154$
+      000119 81               [ 4]  283 	ret
+      00011A                        284 00154$:
+      00011A 58               [ 2]  285 	sllw	x
+      00011B DEu01u1F         [ 2]  286 	ldw	x, (#00155$, x)
+      00011E FC               [ 2]  287 	jp	(x)
+      00011F                        288 00155$:
+      00011Fr01r33                  289 	.dw	#00107$
+      000121r01r4C                  290 	.dw	#00108$
+      000123r01r55                  291 	.dw	#00109$
+      000125r01r6A                  292 	.dw	#00110$
+      000127r01r7F                  293 	.dw	#00111$
+      000129r01r90                  294 	.dw	#00112$
+      00012Br01rA5                  295 	.dw	#00113$
+      00012Dr01rBE                  296 	.dw	#00114$
+      00012Fr01rCB                  297 	.dw	#00115$
+      000131r01rE8                  298 	.dw	#00116$
+                                    299 ;	inc/7sig.h: 22: case 0:   
+      000133                        300 00107$:
+                                    301 ;	inc/7sig.h: 23: segA,segB,segC,segD,segE,segF;
+      000133 72 13 50 0A      [ 1]  302 	bres	20490, #1
+      000137 72 15 50 0A      [ 1]  303 	bres	20490, #2
+      00013B 72 17 50 0A      [ 1]  304 	bres	20490, #3
+      00013F 72 1B 50 0A      [ 1]  305 	bres	20490, #5
+      000143 72 19 50 0A      [ 1]  306 	bres	20490, #4
+      000147 72 1F 50 0A      [ 1]  307 	bres	20490, #7
+                                    308 ;	inc/7sig.h: 24: break;
+      00014B 81               [ 4]  309 	ret
+                                    310 ;	inc/7sig.h: 25: case 1:   
+      00014C                        311 00108$:
+                                    312 ;	inc/7sig.h: 26: segB,segC;
+      00014C 72 15 50 0A      [ 1]  313 	bres	20490, #2
+      000150 72 17 50 0A      [ 1]  314 	bres	20490, #3
+                                    315 ;	inc/7sig.h: 27: break;
+      000154 81               [ 4]  316 	ret
+                                    317 ;	inc/7sig.h: 28: case 2:   
+      000155                        318 00109$:
+                                    319 ;	inc/7sig.h: 29: segA,segB,segG,segD,segE;
+      000155 72 13 50 0A      [ 1]  320 	bres	20490, #1
+      000159 72 15 50 0A      [ 1]  321 	bres	20490, #2
+      00015D 72 1D 50 0A      [ 1]  322 	bres	20490, #6
+      000161 72 1B 50 0A      [ 1]  323 	bres	20490, #5
+      000165 72 19 50 0A      [ 1]  324 	bres	20490, #4
+                                    325 ;	inc/7sig.h: 30: break;
+      000169 81               [ 4]  326 	ret
+                                    327 ;	inc/7sig.h: 31: case 3:   
+      00016A                        328 00110$:
+                                    329 ;	inc/7sig.h: 32: segA,segB,segC,segD,segG;
+      00016A 72 13 50 0A      [ 1]  330 	bres	20490, #1
+      00016E 72 15 50 0A      [ 1]  331 	bres	20490, #2
+      000172 72 17 50 0A      [ 1]  332 	bres	20490, #3
+      000176 72 1B 50 0A      [ 1]  333 	bres	20490, #5
+      00017A 72 1D 50 0A      [ 1]  334 	bres	20490, #6
+                                    335 ;	inc/7sig.h: 33: break;
+      00017E 81               [ 4]  336 	ret
+                                    337 ;	inc/7sig.h: 34: case 4:   
+      00017F                        338 00111$:
+                                    339 ;	inc/7sig.h: 35: segF,segB,segG,segC;
+      00017F 72 1F 50 0A      [ 1]  340 	bres	20490, #7
+      000183 72 15 50 0A      [ 1]  341 	bres	20490, #2
+      000187 72 1D 50 0A      [ 1]  342 	bres	20490, #6
+      00018B 72 17 50 0A      [ 1]  343 	bres	20490, #3
+                                    344 ;	inc/7sig.h: 36: break;
+      00018F 81               [ 4]  345 	ret
+                                    346 ;	inc/7sig.h: 37: case 5:   
+      000190                        347 00112$:
+                                    348 ;	inc/7sig.h: 38: segA,segC,segD,segF,segG;
+      000190 72 13 50 0A      [ 1]  349 	bres	20490, #1
+      000194 72 17 50 0A      [ 1]  350 	bres	20490, #3
+      000198 72 1B 50 0A      [ 1]  351 	bres	20490, #5
+      00019C 72 1F 50 0A      [ 1]  352 	bres	20490, #7
+      0001A0 72 1D 50 0A      [ 1]  353 	bres	20490, #6
+                                    354 ;	inc/7sig.h: 39: break;
+      0001A4 81               [ 4]  355 	ret
+                                    356 ;	inc/7sig.h: 40: case 6:   
+      0001A5                        357 00113$:
+                                    358 ;	inc/7sig.h: 41: segA,segC,segD,segE,segF,segG;
+      0001A5 72 13 50 0A      [ 1]  359 	bres	20490, #1
+      0001A9 72 17 50 0A      [ 1]  360 	bres	20490, #3
+      0001AD 72 1B 50 0A      [ 1]  361 	bres	20490, #5
+      0001B1 72 19 50 0A      [ 1]  362 	bres	20490, #4
+      0001B5 72 1F 50 0A      [ 1]  363 	bres	20490, #7
+      0001B9 72 1D 50 0A      [ 1]  364 	bres	20490, #6
+                                    365 ;	inc/7sig.h: 42: break;
+      0001BD 81               [ 4]  366 	ret
+                                    367 ;	inc/7sig.h: 43: case 7:   
+      0001BE                        368 00114$:
+                                    369 ;	inc/7sig.h: 44: segA,segB,segC;
+      0001BE 72 13 50 0A      [ 1]  370 	bres	20490, #1
+      0001C2 72 15 50 0A      [ 1]  371 	bres	20490, #2
+      0001C6 72 17 50 0A      [ 1]  372 	bres	20490, #3
+                                    373 ;	inc/7sig.h: 45: break;
+      0001CA 81               [ 4]  374 	ret
+                                    375 ;	inc/7sig.h: 46: case 8:   
+      0001CB                        376 00115$:
+                                    377 ;	inc/7sig.h: 47: segA,segB,segC,segD,segE,segF,segG;
+      0001CB 72 13 50 0A      [ 1]  378 	bres	20490, #1
+      0001CF 72 15 50 0A      [ 1]  379 	bres	20490, #2
+      0001D3 72 17 50 0A      [ 1]  380 	bres	20490, #3
+      0001D7 72 1B 50 0A      [ 1]  381 	bres	20490, #5
+      0001DB 72 19 50 0A      [ 1]  382 	bres	20490, #4
+      0001DF 72 1F 50 0A      [ 1]  383 	bres	20490, #7
+      0001E3 72 1D 50 0A      [ 1]  384 	bres	20490, #6
+                                    385 ;	inc/7sig.h: 48: break;
+      0001E7 81               [ 4]  386 	ret
+                                    387 ;	inc/7sig.h: 49: case 9:   
+      0001E8                        388 00116$:
+                                    389 ;	inc/7sig.h: 50: segA,segB,segC,segD,segF,segG;
+      0001E8 72 13 50 0A      [ 1]  390 	bres	20490, #1
+      0001EC 72 15 50 0A      [ 1]  391 	bres	20490, #2
+      0001F0 72 17 50 0A      [ 1]  392 	bres	20490, #3
+      0001F4 72 1B 50 0A      [ 1]  393 	bres	20490, #5
+      0001F8 72 1F 50 0A      [ 1]  394 	bres	20490, #7
+      0001FC 72 1D 50 0A      [ 1]  395 	bres	20490, #6
+                                    396 ;	inc/7sig.h: 54: }
+                                    397 ;	inc/7sig.h: 56: }
+      000200 81               [ 4]  398 	ret
+                                    399 ;	main.c: 6: void delay(int t)
+                                    400 ;	-----------------------------------------
+                                    401 ;	 function delay
+                                    402 ;	-----------------------------------------
+      000201                        403 _delay:
+      000201 52 02            [ 2]  404 	sub	sp, #2
+                                    405 ;	main.c: 9: for(i=0;i<t;i++)
+      000203 5F               [ 1]  406 	clrw	x
+      000204                        407 00107$:
+      000204 13 05            [ 2]  408 	cpw	x, (0x05, sp)
+      000206 2E 14            [ 1]  409 	jrsge	00109$
+                                    410 ;	main.c: 11: for(s=0;s<1512;s++)
+      000208 90 AE 05 E8      [ 2]  411 	ldw	y, #0x05e8
+      00020C 17 01            [ 2]  412 	ldw	(0x01, sp), y
+      00020E                        413 00105$:
+                                    414 ;	main.c: 13: __asm__("nop\n");
+      00020E 9D               [ 1]  415 	nop
+      00020F 16 01            [ 2]  416 	ldw	y, (0x01, sp)
+      000211 90 5A            [ 2]  417 	decw	y
+      000213 17 01            [ 2]  418 	ldw	(0x01, sp), y
+                                    419 ;	main.c: 11: for(s=0;s<1512;s++)
+      000215 90 5D            [ 2]  420 	tnzw	y
+      000217 26 F5            [ 1]  421 	jrne	00105$
+                                    422 ;	main.c: 9: for(i=0;i<t;i++)
+      000219 5C               [ 1]  423 	incw	x
+      00021A 20 E8            [ 2]  424 	jra	00107$
+      00021C                        425 00109$:
+                                    426 ;	main.c: 16: }
+      00021C 5B 02            [ 2]  427 	addw	sp, #2
+      00021E 81               [ 4]  428 	ret
+                                    429 ;	main.c: 18: void main(void)
+                                    430 ;	-----------------------------------------
+                                    431 ;	 function main
+                                    432 ;	-----------------------------------------
+      00021F                        433 _main:
+      00021F 52 12            [ 2]  434 	sub	sp, #18
+                                    435 ;	main.c: 20: int f=150,w=0,s=0,t=0,q=0,counter=0,ironON=200,ironOFF=55,format_data=0,oldadc=0,adc_data=0;
+      000221 AE 00 96         [ 2]  436 	ldw	x, #0x0096
+      000224 1F 0B            [ 2]  437 	ldw	(0x0b, sp), x
+      000226 5F               [ 1]  438 	clrw	x
+      000227 1F 0D            [ 2]  439 	ldw	(0x0d, sp), x
+      000229 5F               [ 1]  440 	clrw	x
+      00022A 1F 11            [ 2]  441 	ldw	(0x11, sp), x
+      00022C 5F               [ 1]  442 	clrw	x
+      00022D 1F 0F            [ 2]  443 	ldw	(0x0f, sp), x
+      00022F AE 00 C8         [ 2]  444 	ldw	x, #0x00c8
+      000232 1F 09            [ 2]  445 	ldw	(0x09, sp), x
+      000234 AE 00 37         [ 2]  446 	ldw	x, #0x0037
+      000237 1F 07            [ 2]  447 	ldw	(0x07, sp), x
+      000239 5F               [ 1]  448 	clrw	x
+      00023A 1F 05            [ 2]  449 	ldw	(0x05, sp), x
+      00023C 5F               [ 1]  450 	clrw	x
+      00023D 1F 01            [ 2]  451 	ldw	(0x01, sp), x
+                                    452 ;	main.c: 21: clk_init();
+      00023F CDr00r00         [ 4]  453 	call	_clk_init
+                                    454 ;	main.c: 22: gpio_init();
+      000242 CDr00r23         [ 4]  455 	call	_gpio_init
+                                    456 ;	main.c: 23: ADC_INIT();
+      000245 CDr00r6C         [ 4]  457 	call	_ADC_INIT
+                                    458 ;	main.c: 24: while(1)
+      000248                        459 00136$:
+                                    460 ;	main.c: 26: if(counter<=32) counter++;
+      000248 1E 0F            [ 2]  461 	ldw	x, (0x0f, sp)
+      00024A A3 00 20         [ 2]  462 	cpw	x, #0x0020
+      00024D 2C 05            [ 1]  463 	jrsgt	00102$
+      00024F 1E 0F            [ 2]  464 	ldw	x, (0x0f, sp)
+      000251 5C               [ 1]  465 	incw	x
+      000252 1F 0F            [ 2]  466 	ldw	(0x0f, sp), x
+      000254                        467 00102$:
+                                    468 ;	main.c: 27: if(counter>32) counter=0;
+      000254 1E 0F            [ 2]  469 	ldw	x, (0x0f, sp)
+      000256 A3 00 20         [ 2]  470 	cpw	x, #0x0020
+      000259 2D 03            [ 1]  471 	jrsle	00104$
+      00025B 5F               [ 1]  472 	clrw	x
+      00025C 1F 0F            [ 2]  473 	ldw	(0x0f, sp), x
+      00025E                        474 00104$:
+                                    475 ;	main.c: 28: if((counter&(1<<2))!=0)
+      00025E 7B 10            [ 1]  476 	ld	a, (0x10, sp)
+      000260 A5 04            [ 1]  477 	bcp	a, #0x04
+      000262 27 65            [ 1]  478 	jreq	00118$
+                                    479 ;	main.c: 30: out7seg(format_data,t);
+      000264 1E 0D            [ 2]  480 	ldw	x, (0x0d, sp)
+      000266 89               [ 2]  481 	pushw	x
+      000267 1E 07            [ 2]  482 	ldw	x, (0x07, sp)
+      000269 89               [ 2]  483 	pushw	x
+      00026A CDr00r9F         [ 4]  484 	call	_out7seg
+      00026D 5B 04            [ 2]  485 	addw	sp, #4
+                                    486 ;	main.c: 31: w=(PD_IDR&((1<<7)|(1<<6)));
+      00026F C6 50 10         [ 1]  487 	ld	a, 0x5010
+      000272 A4 C0            [ 1]  488 	and	a, #0xc0
+      000274 5F               [ 1]  489 	clrw	x
+      000275 97               [ 1]  490 	ld	xl, a
+      000276 1F 03            [ 2]  491 	ldw	(0x03, sp), x
+                                    492 ;	main.c: 32: if(w==128&&q==192&&f<500)   f=f+1;
+      000278 1E 11            [ 2]  493 	ldw	x, (0x11, sp)
+      00027A A3 00 C0         [ 2]  494 	cpw	x, #0x00c0
+      00027D 26 03            [ 1]  495 	jrne	00249$
+      00027F A6 01            [ 1]  496 	ld	a, #0x01
+      000281 21                     497 	.byte 0x21
+      000282                        498 00249$:
+      000282 4F               [ 1]  499 	clr	a
+      000283                        500 00250$:
+      000283 1E 03            [ 2]  501 	ldw	x, (0x03, sp)
+      000285 A3 00 80         [ 2]  502 	cpw	x, #0x0080
+      000288 26 0F            [ 1]  503 	jrne	00106$
+      00028A 4D               [ 1]  504 	tnz	a
+      00028B 27 0C            [ 1]  505 	jreq	00106$
+      00028D 1E 0B            [ 2]  506 	ldw	x, (0x0b, sp)
+      00028F A3 01 F4         [ 2]  507 	cpw	x, #0x01f4
+      000292 2E 05            [ 1]  508 	jrsge	00106$
+      000294 1E 0B            [ 2]  509 	ldw	x, (0x0b, sp)
+      000296 5C               [ 1]  510 	incw	x
+      000297 1F 0B            [ 2]  511 	ldw	(0x0b, sp), x
+      000299                        512 00106$:
+                                    513 ;	main.c: 33: if(w==64&&q==192&&f>0)    f=f-1;
+      000299 1E 03            [ 2]  514 	ldw	x, (0x03, sp)
+      00029B A3 00 40         [ 2]  515 	cpw	x, #0x0040
+      00029E 26 0F            [ 1]  516 	jrne	00110$
+      0002A0 4D               [ 1]  517 	tnz	a
+      0002A1 27 0C            [ 1]  518 	jreq	00110$
+      0002A3 1E 0B            [ 2]  519 	ldw	x, (0x0b, sp)
+      0002A5 A3 00 00         [ 2]  520 	cpw	x, #0x0000
+      0002A8 2D 05            [ 1]  521 	jrsle	00110$
+      0002AA 1E 0B            [ 2]  522 	ldw	x, (0x0b, sp)
+      0002AC 5A               [ 2]  523 	decw	x
+      0002AD 1F 0B            [ 2]  524 	ldw	(0x0b, sp), x
+      0002AF                        525 00110$:
+                                    526 ;	main.c: 34: q=w;
+      0002AF 16 03            [ 2]  527 	ldw	y, (0x03, sp)
+      0002B1 17 11            [ 2]  528 	ldw	(0x11, sp), y
+                                    529 ;	main.c: 36: if(t<=2)t++;
+      0002B3 1E 0D            [ 2]  530 	ldw	x, (0x0d, sp)
+      0002B5 A3 00 02         [ 2]  531 	cpw	x, #0x0002
+      0002B8 2C 05            [ 1]  532 	jrsgt	00114$
+      0002BA 1E 0D            [ 2]  533 	ldw	x, (0x0d, sp)
+      0002BC 5C               [ 1]  534 	incw	x
+      0002BD 1F 0D            [ 2]  535 	ldw	(0x0d, sp), x
+      0002BF                        536 00114$:
+                                    537 ;	main.c: 37: if(t>2)t=0;
+      0002BF 1E 0D            [ 2]  538 	ldw	x, (0x0d, sp)
+      0002C1 A3 00 02         [ 2]  539 	cpw	x, #0x0002
+      0002C4 2D 03            [ 1]  540 	jrsle	00118$
+      0002C6 5F               [ 1]  541 	clrw	x
+      0002C7 1F 0D            [ 2]  542 	ldw	(0x0d, sp), x
+      0002C9                        543 00118$:
+                                    544 ;	main.c: 40: if(counter==8||counter==16||counter==24)
+      0002C9 1E 0F            [ 2]  545 	ldw	x, (0x0f, sp)
+      0002CB A3 00 08         [ 2]  546 	cpw	x, #0x0008
+      0002CE 27 11            [ 1]  547 	jreq	00131$
+      0002D0 1E 0F            [ 2]  548 	ldw	x, (0x0f, sp)
+      0002D2 A3 00 10         [ 2]  549 	cpw	x, #0x0010
+      0002D5 27 0A            [ 1]  550 	jreq	00131$
+      0002D7 1E 0F            [ 2]  551 	ldw	x, (0x0f, sp)
+      0002D9 A3 00 18         [ 2]  552 	cpw	x, #0x0018
+      0002DC 27 03            [ 1]  553 	jreq	00271$
+      0002DE CCr02r48         [ 2]  554 	jp	00136$
+      0002E1                        555 00271$:
+      0002E1                        556 00131$:
+                                    557 ;	main.c: 43: if(ironON!=0)
+      0002E1 1E 09            [ 2]  558 	ldw	x, (0x09, sp)
+      0002E3 27 0D            [ 1]  559 	jreq	00120$
+                                    560 ;	main.c: 45: PD_ODR|=(1<<0);
+      0002E5 C6 50 0F         [ 1]  561 	ld	a, 0x500f
+      0002E8 AA 01            [ 1]  562 	or	a, #0x01
+      0002EA C7 50 0F         [ 1]  563 	ld	0x500f, a
+                                    564 ;	main.c: 46: --ironON;
+      0002ED 1E 09            [ 2]  565 	ldw	x, (0x09, sp)
+      0002EF 5A               [ 2]  566 	decw	x
+      0002F0 1F 09            [ 2]  567 	ldw	(0x09, sp), x
+      0002F2                        568 00120$:
+                                    569 ;	main.c: 49: if(ironON==0&&ironOFF!=0)
+      0002F2 1E 09            [ 2]  570 	ldw	x, (0x09, sp)
+      0002F4 26 11            [ 1]  571 	jrne	00122$
+      0002F6 1E 07            [ 2]  572 	ldw	x, (0x07, sp)
+      0002F8 27 0D            [ 1]  573 	jreq	00122$
+                                    574 ;	main.c: 51: PD_ODR&=~(1<<0);
+      0002FA C6 50 0F         [ 1]  575 	ld	a, 0x500f
+      0002FD A4 FE            [ 1]  576 	and	a, #0xfe
+      0002FF C7 50 0F         [ 1]  577 	ld	0x500f, a
+                                    578 ;	main.c: 52: --ironOFF;
+      000302 1E 07            [ 2]  579 	ldw	x, (0x07, sp)
+      000304 5A               [ 2]  580 	decw	x
+      000305 1F 07            [ 2]  581 	ldw	(0x07, sp), x
+      000307                        582 00122$:
+                                    583 ;	main.c: 55: if(ironON==0&&ironOFF==0)
+      000307 1E 09            [ 2]  584 	ldw	x, (0x09, sp)
+      000309 27 03            [ 1]  585 	jreq	00275$
+      00030B CCr02r48         [ 2]  586 	jp	00136$
+      00030E                        587 00275$:
+      00030E 1E 07            [ 2]  588 	ldw	x, (0x07, sp)
+      000310 27 03            [ 1]  589 	jreq	00276$
+      000312 CCr02r48         [ 2]  590 	jp	00136$
+      000315                        591 00276$:
+                                    592 ;	main.c: 57: adc_data=ADC_read();
+      000315 CDr00r85         [ 4]  593 	call	_ADC_read
+                                    594 ;	main.c: 58: adc_data=adc_data+oldadc;
+      000318 72 FB 01         [ 2]  595 	addw	x, (0x01, sp)
+                                    596 ;	main.c: 59: adc_data=adc_data>>1;
+      00031B 57               [ 2]  597 	sraw	x
+                                    598 ;	main.c: 60: format_data=adc_data;
+      00031C 1F 05            [ 2]  599 	ldw	(0x05, sp), x
+                                    600 ;	main.c: 61: oldadc=adc_data;
+      00031E 1F 01            [ 2]  601 	ldw	(0x01, sp), x
+                                    602 ;	main.c: 63: ironON=f-format_data;
+      000320 50               [ 2]  603 	negw	x
+      000321 72 FB 0B         [ 2]  604 	addw	x, (0x0b, sp)
+                                    605 ;	main.c: 64: if(ironON>120)ironON=120;
+      000324 1F 09            [ 2]  606 	ldw	(0x09, sp), x
+      000326 A3 00 78         [ 2]  607 	cpw	x, #0x0078
+      000329 2D 05            [ 1]  608 	jrsle	00125$
+      00032B AE 00 78         [ 2]  609 	ldw	x, #0x0078
+      00032E 1F 09            [ 2]  610 	ldw	(0x09, sp), x
+      000330                        611 00125$:
+                                    612 ;	main.c: 65: if(ironON<0)ironON=0;
+      000330 0D 09            [ 1]  613 	tnz	(0x09, sp)
+      000332 2A 03            [ 1]  614 	jrpl	00127$
+      000334 5F               [ 1]  615 	clrw	x
+      000335 1F 09            [ 2]  616 	ldw	(0x09, sp), x
+      000337                        617 00127$:
+                                    618 ;	main.c: 66: ironOFF=128-ironON;
+      000337 AE 00 80         [ 2]  619 	ldw	x, #0x0080
+      00033A 72 F0 09         [ 2]  620 	subw	x, (0x09, sp)
+      00033D 1F 07            [ 2]  621 	ldw	(0x07, sp), x
+                                    622 ;	main.c: 71: }
+      00033F CCr02r48         [ 2]  623 	jp	00136$
+                                    624 	.area CODE
+                                    625 	.area CONST
+                                    626 	.area INITIALIZER
+                                    627 	.area CABS (ABS)

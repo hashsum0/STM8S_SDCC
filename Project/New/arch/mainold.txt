@@ -1,0 +1,47 @@
+#include "inc/stm8s.h"
+#include "inc/clk_init.h"
+#include "inc/gpio_init.h"
+#include "inc/uart1.h"
+#include "inc/IR_decoder.h"
+void delay(int t)
+{
+    int i,s;
+    for(i=0;i<t;i++)
+    {
+        for(s=0;s<1512;s++)
+        {
+        }
+    }
+}
+void main(void)
+{
+    char slovo[5];
+    int i;
+    clk_init_HSE();
+    GPIO_init();
+    IR_dec_init();
+    
+    uart1_init();
+while(1){
+    i=0;
+    
+    i=resive_ir();
+    
+    if(i!=0){
+    PD_ODR|=(1<<0);    
+    slovo[0]=(i%10000/1000)+48;
+    slovo[1]=(i%1000/100)+48;
+    slovo[2]=(i%100/10)+48;
+    slovo[3]=(i%10/1)+48;
+    slovo[4]='\n';
+    tx(slovo);
+    //delay(5);
+    
+    }
+    PD_ODR |=(1<<0);
+    //delay(50);
+    //for(i=0;i<=20;i++)slovo[i]=0;
+    //PD_ODR|=(1<<0);
+    
+    }
+}

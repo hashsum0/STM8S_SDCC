@@ -1,0 +1,21 @@
+0x00 5300 TIM2_CR1
+0x00 5303 TIM2_IER         TIM2 interrupt enable register 0x00
+0x00 5304 TIM2_SR1         TIM2 status register 1 0x00
+0x00 5305 TIM2_SR2         TIM2 status register 2 0x00
+0x00 5306 TIM2_EGR        TIM2 event generation register 0x00
+0x00 5307 TIM2_CCMR1          TIM2 capture/compare mode register 1 0x00
+0x00 5308 TIM2_CCMR2           TIM2 capture/compare mode register 2 0x00
+0x00 5309 TIM2_CCMR3           TIM2 capture/compare mode register 3 0x00
+0x00 530A TIM2_CCER1             TIM2 capture/compare enable register 1 0x00
+0x00 530B TIM2_CCER2             TIM2 capture/compare enable register 2 0x00
+0x00 530C TIM2_CNTRH               TIM2 counter high 0x00
+0x00 530D TIM2_CNTRL               TIM2 counter low 0x00
+0x00 530E TIM2_PSCR                TIM2 prescaler register 0x00
+0x00 530F TIM2_ARRH                    TIM2 auto-reload register high 0xFF
+0x00 5310 TIM2_ARRL                    TIM2 auto-reload register low 0xFF
+0x00 5311 TIM2_CCR1H                   TIM2 capture/compare register 1 high 0x00
+0x00 5312 TIM2_CCR1L                   TIM2 capture/compare register 1 low 0x00
+0x00 5313 TIM2_CCR2H                   TIM2 capture/compare reg. 2 high 0x00
+0x00 5314 TIM2_CCR2L                    TIM2 capture/compare register 2 low 0x00
+0x00 5315 TIM2_CCR3H                       TIM2 capture/compare register 3 high 0x00
+0x00 5316 TIM2_CCR3L                       TIM2 capture/compare register 3 low 0x00

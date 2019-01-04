@@ -1,0 +1,327 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 3.8.0 #10562 (Linux)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module main
+                                      6 	.optsdcc -mstm8
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _main
+                                     12 	.globl _SPI_deinit
+                                     13 	.globl _SPI_read
+                                     14 	.globl _SPI_write
+                                     15 	.globl _SPI_init
+                                     16 	.globl _rx
+                                     17 	.globl _tx
+                                     18 	.globl _uart1_init
+                                     19 	.globl _GPIO_init
+                                     20 	.globl _clk_init
+                                     21 ;--------------------------------------------------------
+                                     22 ; ram data
+                                     23 ;--------------------------------------------------------
+                                     24 	.area DATA
+                                     25 ;--------------------------------------------------------
+                                     26 ; ram data
+                                     27 ;--------------------------------------------------------
+                                     28 	.area INITIALIZED
+                                     29 ;--------------------------------------------------------
+                                     30 ; Stack segment in internal ram 
+                                     31 ;--------------------------------------------------------
+                                     32 	.area	SSEG
+      000000                         33 __start__stack:
+      000000                         34 	.ds	1
+                                     35 
+                                     36 ;--------------------------------------------------------
+                                     37 ; absolute external ram data
+                                     38 ;--------------------------------------------------------
+                                     39 	.area DABS (ABS)
+                                     40 
+                                     41 ; default segment ordering for linker
+                                     42 	.area HOME
+                                     43 	.area GSINIT
+                                     44 	.area GSFINAL
+                                     45 	.area CONST
+                                     46 	.area INITIALIZER
+                                     47 	.area CODE
+                                     48 
+                                     49 ;--------------------------------------------------------
+                                     50 ; interrupt vector 
+                                     51 ;--------------------------------------------------------
+                                     52 	.area HOME
+      000000                         53 __interrupt_vect:
+      000000 82v00u00u00             54 	int s_GSINIT ; reset
+                                     55 ;--------------------------------------------------------
+                                     56 ; global & static initialisations
+                                     57 ;--------------------------------------------------------
+                                     58 	.area HOME
+                                     59 	.area GSINIT
+                                     60 	.area GSFINAL
+                                     61 	.area GSINIT
+      000000                         62 __sdcc_gs_init_startup:
+      000000                         63 __sdcc_init_data:
+                                     64 ; stm8_genXINIT() start
+      000000 AEr00r00         [ 2]   65 	ldw x, #l_DATA
+      000003 27 07            [ 1]   66 	jreq	00002$
+      000005                         67 00001$:
+      000005 72 4FuFFuFF      [ 1]   68 	clr (s_DATA - 1, x)
+      000009 5A               [ 2]   69 	decw x
+      00000A 26 F9            [ 1]   70 	jrne	00001$
+      00000C                         71 00002$:
+      00000C AEr00r00         [ 2]   72 	ldw	x, #l_INITIALIZER
+      00000F 27 09            [ 1]   73 	jreq	00004$
+      000011                         74 00003$:
+      000011 D6uFFuFF         [ 1]   75 	ld	a, (s_INITIALIZER - 1, x)
+      000014 D7uFFuFF         [ 1]   76 	ld	(s_INITIALIZED - 1, x), a
+      000017 5A               [ 2]   77 	decw	x
+      000018 26 F7            [ 1]   78 	jrne	00003$
+      00001A                         79 00004$:
+                                     80 ; stm8_genXINIT() end
+                                     81 	.area GSFINAL
+      000000 CCr00r04         [ 2]   82 	jp	__sdcc_program_startup
+                                     83 ;--------------------------------------------------------
+                                     84 ; Home
+                                     85 ;--------------------------------------------------------
+                                     86 	.area HOME
+                                     87 	.area HOME
+      000004                         88 __sdcc_program_startup:
+      000004 CCr00rC5         [ 2]   89 	jp	_main
+                                     90 ;	return from main will return to caller
+                                     91 ;--------------------------------------------------------
+                                     92 ; code
+                                     93 ;--------------------------------------------------------
+                                     94 	.area CODE
+                                     95 ;	inc/clk_init.h: 7: void clk_init(void){    
+                                     96 ;	-----------------------------------------
+                                     97 ;	 function clk_init
+                                     98 ;	-----------------------------------------
+      000000                         99 _clk_init:
+                                    100 ;	inc/clk_init.h: 8: CLK_ECKR|=CLK_ECKR_HSEEN;            
+      000000 72 10 50 C1      [ 1]  101 	bset	20673, #0
+                                    102 ;	inc/clk_init.h: 9: CLK_SWCR|=CLK_SWCR_SWEN;               
+      000004 72 12 50 C5      [ 1]  103 	bset	20677, #1
+                                    104 ;	inc/clk_init.h: 10: while((CLK_ECKR & CLK_ECKR_HSERDY) == 0) {} 
+      000008                        105 00101$:
+      000008 C6 50 C1         [ 1]  106 	ld	a, 0x50c1
+      00000B A5 02            [ 1]  107 	bcp	a, #0x02
+      00000D 27 F9            [ 1]  108 	jreq	00101$
+                                    109 ;	inc/clk_init.h: 11: CLK_CKDIVR = 0;                    
+      00000F 35 00 50 C6      [ 1]  110 	mov	0x50c6+0, #0x00
+                                    111 ;	inc/clk_init.h: 12: CLK_SWR = 0xB4;                    
+      000013 35 B4 50 C4      [ 1]  112 	mov	0x50c4+0, #0xb4
+                                    113 ;	inc/clk_init.h: 13: while ((CLK_SWCR & CLK_SWCR_SWIF) == 0){}
+      000017                        114 00104$:
+      000017 C6 50 C5         [ 1]  115 	ld	a, 0x50c5
+      00001A A5 08            [ 1]  116 	bcp	a, #0x08
+      00001C 27 F9            [ 1]  117 	jreq	00104$
+                                    118 ;	inc/clk_init.h: 14: CLK_CSSR|=CLK_CSSR_CSSEN;
+      00001E 72 10 50 C8      [ 1]  119 	bset	20680, #0
+                                    120 ;	inc/clk_init.h: 15: }
+      000022 81               [ 4]  121 	ret
+                                    122 ;	inc/gpio_init.h: 10: void GPIO_init(void)
+                                    123 ;	-----------------------------------------
+                                    124 ;	 function GPIO_init
+                                    125 ;	-----------------------------------------
+      000023                        126 _GPIO_init:
+                                    127 ;	inc/gpio_init.h: 17: PB_DDR = 0x00;                                                        //_______0__________________0________________1_____________bez podtiyzhki,c prerbIvaniem 
+      000023 35 00 50 07      [ 1]  128 	mov	0x5007+0, #0x00
+                                    129 ;	inc/gpio_init.h: 18: PB_CR1 = 0xff;                                                       //_______0__________________1________________1_____________c podtiyzhki,c prerbIvanii
+      000027 35 FF 50 08      [ 1]  130 	mov	0x5008+0, #0xff
+                                    131 ;	inc/gpio_init.h: 19: PB_CR2 = 0xff;                                                      //_______PORT_OUT
+      00002B 35 FF 50 09      [ 1]  132 	mov	0x5009+0, #0xff
+                                    133 ;	inc/gpio_init.h: 21: PC_DDR = 0xff;                                                        //_______1__________________0________________0_____________otkritiy stok
+      00002F 35 FF 50 0C      [ 1]  134 	mov	0x500c+0, #0xff
+                                    135 ;	inc/gpio_init.h: 22: PC_CR1 = 0xFF;                                                       //_______1__________________1________________0_____________dvuhtakthiy vihod
+      000033 35 FF 50 0D      [ 1]  136 	mov	0x500d+0, #0xff
+                                    137 ;	inc/gpio_init.h: 23: PC_CR2 = 0x00;                                                      //_______1__________________X________________1_____________skorost' do 10MHz
+      000037 35 00 50 0E      [ 1]  138 	mov	0x500e+0, #0x00
+                                    139 ;	inc/gpio_init.h: 25: PD_DDR = 0xFF;   
+      00003B 35 FF 50 11      [ 1]  140 	mov	0x5011+0, #0xff
+                                    141 ;	inc/gpio_init.h: 26: PD_CR1 = 0xFF;  
+      00003F 35 FF 50 12      [ 1]  142 	mov	0x5012+0, #0xff
+                                    143 ;	inc/gpio_init.h: 27: PD_CR2 = 0x00; 
+      000043 35 00 50 13      [ 1]  144 	mov	0x5013+0, #0x00
+                                    145 ;	inc/gpio_init.h: 40: }
+      000047 81               [ 4]  146 	ret
+                                    147 ;	inc/uart1.h: 1: void uart1_init()
+                                    148 ;	-----------------------------------------
+                                    149 ;	 function uart1_init
+                                    150 ;	-----------------------------------------
+      000048                        151 _uart1_init:
+                                    152 ;	inc/uart1.h: 3: PD_DDR&=~(1<<6);  
+      000048 72 1D 50 11      [ 1]  153 	bres	20497, #6
+                                    154 ;	inc/uart1.h: 4: PD_DDR|=(1<<5);             
+      00004C 72 1A 50 11      [ 1]  155 	bset	20497, #5
+                                    156 ;	inc/uart1.h: 5: UART1_CR2|=UART1_CR2_REN;
+      000050 72 14 52 35      [ 1]  157 	bset	21045, #2
+                                    158 ;	inc/uart1.h: 6: UART1_CR2|=UART1_CR2_TEN;  
+      000054 72 16 52 35      [ 1]  159 	bset	21045, #3
+                                    160 ;	inc/uart1.h: 7: UART1_BRR2 = 0x00;             
+      000058 35 00 52 33      [ 1]  161 	mov	0x5233+0, #0x00
+                                    162 ;	inc/uart1.h: 8: UART1_BRR1 = 0x48;            
+      00005C 35 48 52 32      [ 1]  163 	mov	0x5232+0, #0x48
+                                    164 ;	inc/uart1.h: 9: }
+      000060 81               [ 4]  165 	ret
+                                    166 ;	inc/uart1.h: 10: void tx(char *str)
+                                    167 ;	-----------------------------------------
+                                    168 ;	 function tx
+                                    169 ;	-----------------------------------------
+      000061                        170 _tx:
+                                    171 ;	inc/uart1.h: 14: while (!(UART1_SR & UART1_SR_TXE)) {}       
+      000061 1E 03            [ 2]  172 	ldw	x, (0x03, sp)
+      000063                        173 00101$:
+      000063 C6 52 30         [ 1]  174 	ld	a, 0x5230
+      000066 2A FB            [ 1]  175 	jrpl	00101$
+                                    176 ;	inc/uart1.h: 15: UART1_DR=*str; 
+      000068 F6               [ 1]  177 	ld	a, (x)
+      000069 C7 52 31         [ 1]  178 	ld	0x5231, a
+                                    179 ;	inc/uart1.h: 16: if(*str=='\r') break;
+      00006C F6               [ 1]  180 	ld	a, (x)
+      00006D A1 0D            [ 1]  181 	cp	a, #0x0d
+      00006F 26 01            [ 1]  182 	jrne	00129$
+      000071 81               [ 4]  183 	ret
+      000072                        184 00129$:
+                                    185 ;	inc/uart1.h: 17: *str++;
+      000072 5C               [ 1]  186 	incw	x
+      000073 20 EE            [ 2]  187 	jra	00101$
+                                    188 ;	inc/uart1.h: 20: } 
+      000075 81               [ 4]  189 	ret
+                                    190 ;	inc/uart1.h: 21: void rx(char *str)
+                                    191 ;	-----------------------------------------
+                                    192 ;	 function rx
+                                    193 ;	-----------------------------------------
+      000076                        194 _rx:
+                                    195 ;	inc/uart1.h: 23: while (*str!='\r')
+      000076                        196 00104$:
+      000076 1E 03            [ 2]  197 	ldw	x, (0x03, sp)
+      000078 F6               [ 1]  198 	ld	a, (x)
+      000079 A1 0D            [ 1]  199 	cp	a, #0x0d
+      00007B 26 01            [ 1]  200 	jrne	00129$
+      00007D 81               [ 4]  201 	ret
+      00007E                        202 00129$:
+                                    203 ;	inc/uart1.h: 26: while ((UART1_SR & UART1_SR_RXNE)!=0)         //Æäåì ïîÿâëåíèÿ áàéòà
+      00007E                        204 00101$:
+      00007E C6 52 30         [ 1]  205 	ld	a, 0x5230
+      000081 A5 20            [ 1]  206 	bcp	a, #0x20
+      000083 27 F1            [ 1]  207 	jreq	00104$
+                                    208 ;	inc/uart1.h: 28: *str++;
+      000085 5C               [ 1]  209 	incw	x
+      000086 1F 03            [ 2]  210 	ldw	(0x03, sp), x
+                                    211 ;	inc/uart1.h: 29: *str=UART1_DR; 
+      000088 C6 52 31         [ 1]  212 	ld	a, 0x5231
+      00008B F7               [ 1]  213 	ld	(x), a
+      00008C 20 F0            [ 2]  214 	jra	00101$
+                                    215 ;	inc/uart1.h: 32: } 
+      00008E 81               [ 4]  216 	ret
+                                    217 ;	inc/spi_slave.h: 1: void SPI_init() {
+                                    218 ;	-----------------------------------------
+                                    219 ;	 function SPI_init
+                                    220 ;	-----------------------------------------
+      00008F                        221 _SPI_init:
+                                    222 ;	inc/spi_slave.h: 3: SPI_CR1 = SPI_CR1_SPE ;
+      00008F 35 40 52 00      [ 1]  223 	mov	0x5200+0, #0x40
+                                    224 ;	inc/spi_slave.h: 4: }
+      000093 81               [ 4]  225 	ret
+                                    226 ;	inc/spi_slave.h: 6: void SPI_write(int data) {
+                                    227 ;	-----------------------------------------
+                                    228 ;	 function SPI_write
+                                    229 ;	-----------------------------------------
+      000094                        230 _SPI_write:
+                                    231 ;	inc/spi_slave.h: 7: SPI_DR = data;
+      000094 7B 04            [ 1]  232 	ld	a, (0x04, sp)
+      000096 C7 52 04         [ 1]  233 	ld	0x5204, a
+                                    234 ;	inc/spi_slave.h: 8: while (!(SPI_SR & SPI_SR_TXE));
+      000099                        235 00101$:
+      000099 C6 52 03         [ 1]  236 	ld	a, 0x5203
+      00009C A5 02            [ 1]  237 	bcp	a, #0x02
+      00009E 27 F9            [ 1]  238 	jreq	00101$
+                                    239 ;	inc/spi_slave.h: 9: }
+      0000A0 81               [ 4]  240 	ret
+                                    241 ;	inc/spi_slave.h: 10: int SPI_read() {
+                                    242 ;	-----------------------------------------
+                                    243 ;	 function SPI_read
+                                    244 ;	-----------------------------------------
+      0000A1                        245 _SPI_read:
+                                    246 ;	inc/spi_slave.h: 11: while (!(SPI_SR & SPI_SR_RXNE));
+      0000A1                        247 00101$:
+      0000A1 C6 52 03         [ 1]  248 	ld	a, 0x5203
+      0000A4 44               [ 1]  249 	srl	a
+      0000A5 24 FA            [ 1]  250 	jrnc	00101$
+                                    251 ;	inc/spi_slave.h: 12: return SPI_DR;
+      0000A7 C6 52 04         [ 1]  252 	ld	a, 0x5204
+      0000AA 5F               [ 1]  253 	clrw	x
+      0000AB 97               [ 1]  254 	ld	xl, a
+                                    255 ;	inc/spi_slave.h: 13: }
+      0000AC 81               [ 4]  256 	ret
+                                    257 ;	inc/spi_slave.h: 14: void SPI_deinit() {
+                                    258 ;	-----------------------------------------
+                                    259 ;	 function SPI_deinit
+                                    260 ;	-----------------------------------------
+      0000AD                        261 _SPI_deinit:
+                                    262 ;	inc/spi_slave.h: 15: while (!(SPI_SR & SPI_SR_RXNE));
+      0000AD                        263 00101$:
+      0000AD C6 52 03         [ 1]  264 	ld	a, 0x5203
+      0000B0 97               [ 1]  265 	ld	xl, a
+      0000B1 44               [ 1]  266 	srl	a
+      0000B2 24 F9            [ 1]  267 	jrnc	00101$
+                                    268 ;	inc/spi_slave.h: 16: while (!(SPI_SR & SPI_SR_TXE));
+      0000B4 9F               [ 1]  269 	ld	a, xl
+      0000B5 A4 02            [ 1]  270 	and	a, #0x02
+      0000B7                        271 00104$:
+      0000B7 4D               [ 1]  272 	tnz	a
+      0000B8 27 FD            [ 1]  273 	jreq	00104$
+                                    274 ;	inc/spi_slave.h: 17: while ((SPI_SR & SPI_SR_BSY));
+      0000BA 9F               [ 1]  275 	ld	a, xl
+      0000BB A4 80            [ 1]  276 	and	a, #0x80
+      0000BD                        277 00107$:
+      0000BD 4D               [ 1]  278 	tnz	a
+      0000BE 26 FD            [ 1]  279 	jrne	00107$
+                                    280 ;	inc/spi_slave.h: 18: SPI_CR1 &=~ SPI_CR1_SPE;
+      0000C0 72 1D 52 00      [ 1]  281 	bres	20992, #6
+                                    282 ;	inc/spi_slave.h: 19: }
+      0000C4 81               [ 4]  283 	ret
+                                    284 ;	main.c: 9: void main(void)
+                                    285 ;	-----------------------------------------
+                                    286 ;	 function main
+                                    287 ;	-----------------------------------------
+      0000C5                        288 _main:
+                                    289 ;	main.c: 12: clk_init();
+      0000C5 CDr00r00         [ 4]  290 	call	_clk_init
+                                    291 ;	main.c: 13: uart1_init();
+      0000C8 CDr00r48         [ 4]  292 	call	_uart1_init
+                                    293 ;	main.c: 14: SPI_init();
+      0000CB CDr00r8F         [ 4]  294 	call	_SPI_init
+                                    295 ;	main.c: 15: tx("start\n\r");
+      0000CE 4Br00            [ 1]  296 	push	#<___str_0
+      0000D0 4Bs00            [ 1]  297 	push	#(___str_0 >> 8)
+      0000D2 CDr00r61         [ 4]  298 	call	_tx
+      0000D5 5B 02            [ 2]  299 	addw	sp, #2
+                                    300 ;	main.c: 17: while (1) {
+      0000D7                        301 00105$:
+                                    302 ;	main.c: 19: data=SPI_read();
+      0000D7 CDr00rA1         [ 4]  303 	call	_SPI_read
+                                    304 ;	main.c: 20: while (!(UART1_SR & UART1_SR_TXE)) {}
+      0000DA                        305 00101$:
+      0000DA C6 52 30         [ 1]  306 	ld	a, 0x5230
+      0000DD 2A FB            [ 1]  307 	jrpl	00101$
+                                    308 ;	main.c: 21: UART1_DR=data;
+      0000DF 9F               [ 1]  309 	ld	a, xl
+      0000E0 C7 52 31         [ 1]  310 	ld	0x5231, a
+                                    311 ;	main.c: 22: SPI_write(data+1);
+      0000E3 5C               [ 1]  312 	incw	x
+      0000E4 89               [ 2]  313 	pushw	x
+      0000E5 CDr00r94         [ 4]  314 	call	_SPI_write
+      0000E8 5B 02            [ 2]  315 	addw	sp, #2
+      0000EA 20 EB            [ 2]  316 	jra	00105$
+                                    317 ;	main.c: 24: }
+      0000EC 81               [ 4]  318 	ret
+                                    319 	.area CODE
+                                    320 	.area CONST
+      000000                        321 ___str_0:
+      000000 73 74 61 72 74         322 	.ascii "start"
+      000005 0A                     323 	.db 0x0a
+      000006 0D                     324 	.db 0x0d
+      000007 00                     325 	.db 0x00
+                                    326 	.area INITIALIZER
+                                    327 	.area CABS (ABS)

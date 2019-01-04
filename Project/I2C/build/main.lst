@@ -1,0 +1,432 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 3.6.9 #10207 (Linux)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module main
+                                      6 	.optsdcc -mstm8
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _main
+                                     12 	.globl _i2c_read_byte
+                                     13 	.globl _i2c_write_byte
+                                     14 	.globl _i2c_init
+                                     15 	.globl _GPIO_init
+                                     16 	.globl _clk_init_HSI
+                                     17 	.globl _clk_init_HSE
+                                     18 ;--------------------------------------------------------
+                                     19 ; ram data
+                                     20 ;--------------------------------------------------------
+                                     21 	.area DATA
+                                     22 ;--------------------------------------------------------
+                                     23 ; ram data
+                                     24 ;--------------------------------------------------------
+                                     25 	.area INITIALIZED
+                                     26 ;--------------------------------------------------------
+                                     27 ; Stack segment in internal ram 
+                                     28 ;--------------------------------------------------------
+                                     29 	.area	SSEG
+      000000                         30 __start__stack:
+      000000                         31 	.ds	1
+                                     32 
+                                     33 ;--------------------------------------------------------
+                                     34 ; absolute external ram data
+                                     35 ;--------------------------------------------------------
+                                     36 	.area DABS (ABS)
+                                     37 ;--------------------------------------------------------
+                                     38 ; interrupt vector 
+                                     39 ;--------------------------------------------------------
+                                     40 	.area HOME
+      000000                         41 __interrupt_vect:
+      000000 82v00u00u00             42 	int s_GSINIT ; reset
+                                     43 ;--------------------------------------------------------
+                                     44 ; global & static initialisations
+                                     45 ;--------------------------------------------------------
+                                     46 	.area HOME
+                                     47 	.area GSINIT
+                                     48 	.area GSFINAL
+                                     49 	.area GSINIT
+      000000                         50 __sdcc_gs_init_startup:
+      000000                         51 __sdcc_init_data:
+                                     52 ; stm8_genXINIT() start
+      000000 AEr00r00         [ 2]   53 	ldw x, #l_DATA
+      000003 27 07            [ 1]   54 	jreq	00002$
+      000005                         55 00001$:
+      000005 72 4FuFFuFF      [ 1]   56 	clr (s_DATA - 1, x)
+      000009 5A               [ 2]   57 	decw x
+      00000A 26 F9            [ 1]   58 	jrne	00001$
+      00000C                         59 00002$:
+      00000C AEr00r00         [ 2]   60 	ldw	x, #l_INITIALIZER
+      00000F 27 09            [ 1]   61 	jreq	00004$
+      000011                         62 00003$:
+      000011 D6uFFuFF         [ 1]   63 	ld	a, (s_INITIALIZER - 1, x)
+      000014 D7uFFuFF         [ 1]   64 	ld	(s_INITIALIZED - 1, x), a
+      000017 5A               [ 2]   65 	decw	x
+      000018 26 F7            [ 1]   66 	jrne	00003$
+      00001A                         67 00004$:
+                                     68 ; stm8_genXINIT() end
+                                     69 	.area GSFINAL
+      000000 CCr00r04         [ 2]   70 	jp	__sdcc_program_startup
+                                     71 ;--------------------------------------------------------
+                                     72 ; Home
+                                     73 ;--------------------------------------------------------
+                                     74 	.area HOME
+                                     75 	.area HOME
+      000004                         76 __sdcc_program_startup:
+      000004 CCr01r88         [ 2]   77 	jp	_main
+                                     78 ;	return from main will return to caller
+                                     79 ;--------------------------------------------------------
+                                     80 ; code
+                                     81 ;--------------------------------------------------------
+                                     82 	.area CODE
+                                     83 ;	inc/clk_init.h: 7: void clk_init_HSE(void){    
+                                     84 ;	-----------------------------------------
+                                     85 ;	 function clk_init_HSE
+                                     86 ;	-----------------------------------------
+      000000                         87 _clk_init_HSE:
+                                     88 ;	inc/clk_init.h: 8: CLK_ECKR|=CLK_ECKR_HSEEN;            
+      000000 72 10 50 C1      [ 1]   89 	bset	20673, #0
+                                     90 ;	inc/clk_init.h: 9: CLK_SWCR|=CLK_SWCR_SWEN;               
+      000004 72 12 50 C5      [ 1]   91 	bset	20677, #1
+                                     92 ;	inc/clk_init.h: 10: while((CLK_ECKR & CLK_ECKR_HSERDY) == 0) {} 
+      000008                         93 00101$:
+      000008 C6 50 C1         [ 1]   94 	ld	a, 0x50c1
+      00000B A5 02            [ 1]   95 	bcp	a, #0x02
+      00000D 27 F9            [ 1]   96 	jreq	00101$
+                                     97 ;	inc/clk_init.h: 11: CLK_CKDIVR = 0;                    
+      00000F 35 00 50 C6      [ 1]   98 	mov	0x50c6+0, #0x00
+                                     99 ;	inc/clk_init.h: 12: CLK_SWR = 0xB4;                    
+      000013 35 B4 50 C4      [ 1]  100 	mov	0x50c4+0, #0xb4
+                                    101 ;	inc/clk_init.h: 13: while ((CLK_SWCR & CLK_SWCR_SWIF) == 0){}
+      000017                        102 00104$:
+      000017 C6 50 C5         [ 1]  103 	ld	a, 0x50c5
+      00001A A5 08            [ 1]  104 	bcp	a, #0x08
+      00001C 27 F9            [ 1]  105 	jreq	00104$
+                                    106 ;	inc/clk_init.h: 14: CLK_CSSR|=CLK_CSSR_CSSEN;
+      00001E 72 10 50 C8      [ 1]  107 	bset	20680, #0
+                                    108 ;	inc/clk_init.h: 16: }
+      000022 81               [ 4]  109 	ret
+                                    110 ;	inc/clk_init.h: 18: void clk_init_HSI()
+                                    111 ;	-----------------------------------------
+                                    112 ;	 function clk_init_HSI
+                                    113 ;	-----------------------------------------
+      000023                        114 _clk_init_HSI:
+                                    115 ;	inc/clk_init.h: 20: CLK_ICKR = 0; // Сбрасываем регистр внутреннего тактирования
+      000023 35 00 50 C0      [ 1]  116 	mov	0x50c0+0, #0x00
+                                    117 ;	inc/clk_init.h: 21: CLK_ICKR|=(1<<0); // Включаем внутренний генератор HSI
+      000027 72 10 50 C0      [ 1]  118 	bset	20672, #0
+                                    119 ;	inc/clk_init.h: 22: CLK_ECKR = 0; // Отключаем внешний генератор
+      00002B 35 00 50 C1      [ 1]  120 	mov	0x50c1+0, #0x00
+                                    121 ;	inc/clk_init.h: 23: while ((CLK_ICKR&(1<<1))== 0); // Ждём стабилизации внутреннего генератора
+      00002F                        122 00101$:
+      00002F C6 50 C0         [ 1]  123 	ld	a, 0x50c0
+      000032 A5 02            [ 1]  124 	bcp	a, #0x02
+      000034 27 F9            [ 1]  125 	jreq	00101$
+                                    126 ;	inc/clk_init.h: 24: CLK_CKDIVR = 0; // Устанавливаем максимальную частоту
+      000036 35 00 50 C6      [ 1]  127 	mov	0x50c6+0, #0x00
+                                    128 ;	inc/clk_init.h: 25: CLK_CCOR = 0; // Выключаем CCO.
+      00003A 35 00 50 C9      [ 1]  129 	mov	0x50c9+0, #0x00
+                                    130 ;	inc/clk_init.h: 26: CLK_HSITRIMR = 0; // Turn off any HSIU trimming.
+      00003E 35 00 50 CC      [ 1]  131 	mov	0x50cc+0, #0x00
+                                    132 ;	inc/clk_init.h: 27: CLK_SWIMCCR = 0; // Set SWIM to run at clock / 2.
+      000042 35 00 50 CD      [ 1]  133 	mov	0x50cd+0, #0x00
+                                    134 ;	inc/clk_init.h: 28: CLK_SWR = 0xe1; // Используем HSI в качестве источника тактиров
+      000046 35 E1 50 C4      [ 1]  135 	mov	0x50c4+0, #0xe1
+                                    136 ;	inc/clk_init.h: 29: CLK_SWCR = 0; // Сброс флага переключения генераторов
+      00004A 35 00 50 C5      [ 1]  137 	mov	0x50c5+0, #0x00
+                                    138 ;	inc/clk_init.h: 30: CLK_SWCR= CLK_SWCR_SWEN; // Включаем переключение на HSI
+      00004E 35 02 50 C5      [ 1]  139 	mov	0x50c5+0, #0x02
+                                    140 ;	inc/clk_init.h: 31: while ((CLK_SWCR&(1<<0)) != 0); // Пауза, пока произойдёт переключение(CLK_SWCR_SWBSY != 0)
+      000052                        141 00104$:
+      000052 C6 50 C5         [ 1]  142 	ld	a, 0x50c5
+      000055 44               [ 1]  143 	srl	a
+      000056 25 FA            [ 1]  144 	jrc	00104$
+                                    145 ;	inc/clk_init.h: 33: }
+      000058 81               [ 4]  146 	ret
+                                    147 ;	inc/gpio_init.h: 1: void GPIO_init(void)
+                                    148 ;	-----------------------------------------
+                                    149 ;	 function GPIO_init
+                                    150 ;	-----------------------------------------
+      000059                        151 _GPIO_init:
+                                    152 ;	inc/gpio_init.h: 4: PA_DDR = 0xFF;                                                        //_______PORT_IN
+      000059 35 FF 50 02      [ 1]  153 	mov	0x5002+0, #0xff
+                                    154 ;	inc/gpio_init.h: 5: PA_CR1 = 0xFF;                                                       //_______DDR________________CR1______________CR2___________FUNCTION  
+      00005D 35 FF 50 03      [ 1]  155 	mov	0x5003+0, #0xff
+                                    156 ;	inc/gpio_init.h: 6: PA_CR2 = 0x00;                                                      //_______0__________________0________________0_____________bez podtiyzhki,bez prerbIvanii 
+      000061 35 00 50 04      [ 1]  157 	mov	0x5004+0, #0x00
+                                    158 ;	inc/gpio_init.h: 8: PB_DDR = 0x00;                                                        //_______0__________________0________________1_____________bez podtiyzhki,c prerbIvaniem 
+      000065 35 00 50 07      [ 1]  159 	mov	0x5007+0, #0x00
+                                    160 ;	inc/gpio_init.h: 9: PB_CR1 = 0xff;                                                       //_______0__________________1________________1_____________c podtiyzhki,c prerbIvanii
+      000069 35 FF 50 08      [ 1]  161 	mov	0x5008+0, #0xff
+                                    162 ;	inc/gpio_init.h: 10: PB_CR2 = 0x00;                                                      //_______PORT_OUT
+      00006D 35 00 50 09      [ 1]  163 	mov	0x5009+0, #0x00
+                                    164 ;	inc/gpio_init.h: 12: PC_DDR = 0xFF;                                                        //_______1__________________0________________0_____________otkritiy stok
+      000071 35 FF 50 0C      [ 1]  165 	mov	0x500c+0, #0xff
+                                    166 ;	inc/gpio_init.h: 13: PC_CR1 = 0xFF;                                                       //_______1__________________1________________0_____________dvuhtakthiy vihod
+      000075 35 FF 50 0D      [ 1]  167 	mov	0x500d+0, #0xff
+                                    168 ;	inc/gpio_init.h: 14: PC_CR2 = 0x00;                                                      //_______1__________________X________________1_____________skorost' do 10MHz
+      000079 35 00 50 0E      [ 1]  169 	mov	0x500e+0, #0x00
+                                    170 ;	inc/gpio_init.h: 16: PD_DDR = 0xFF;   
+      00007D 35 FF 50 11      [ 1]  171 	mov	0x5011+0, #0xff
+                                    172 ;	inc/gpio_init.h: 17: PD_CR1 = 0xFF;  
+      000081 35 FF 50 12      [ 1]  173 	mov	0x5012+0, #0xff
+                                    174 ;	inc/gpio_init.h: 18: PD_CR2 = 0x00; 
+      000085 35 00 50 13      [ 1]  175 	mov	0x5013+0, #0x00
+                                    176 ;	inc/gpio_init.h: 20: PE_DDR = 0xFF;   
+      000089 35 FF 50 16      [ 1]  177 	mov	0x5016+0, #0xff
+                                    178 ;	inc/gpio_init.h: 21: PE_CR1 = 0xFF;  
+      00008D 35 FF 50 17      [ 1]  179 	mov	0x5017+0, #0xff
+                                    180 ;	inc/gpio_init.h: 22: PE_CR2 = 0x00; 
+      000091 35 00 50 18      [ 1]  181 	mov	0x5018+0, #0x00
+                                    182 ;	inc/gpio_init.h: 24: PF_DDR = 0xFF;   
+      000095 35 FF 50 1B      [ 1]  183 	mov	0x501b+0, #0xff
+                                    184 ;	inc/gpio_init.h: 25: PF_CR1 = 0xFF;  
+      000099 35 FF 50 1C      [ 1]  185 	mov	0x501c+0, #0xff
+                                    186 ;	inc/gpio_init.h: 26: PF_CR2 = 0x00; 
+      00009D 35 00 50 1D      [ 1]  187 	mov	0x501d+0, #0x00
+                                    188 ;	inc/gpio_init.h: 31: }
+      0000A1 81               [ 4]  189 	ret
+                                    190 ;	inc/i2c.h: 56: void i2c_init() {
+                                    191 ;	-----------------------------------------
+                                    192 ;	 function i2c_init
+                                    193 ;	-----------------------------------------
+      0000A2                        194 _i2c_init:
+                                    195 ;	inc/i2c.h: 57: I2C_FREQR |= (1 << 1);
+      0000A2 72 12 52 12      [ 1]  196 	bset	21010, #1
+                                    197 ;	inc/i2c.h: 58: I2C_CCRL = 0x0A; // 100kHz
+      0000A6 35 0A 52 1B      [ 1]  198 	mov	0x521b+0, #0x0a
+                                    199 ;	inc/i2c.h: 59: I2C_OARH |= (1 << 7); // 7-bit addressing
+      0000AA 72 1E 52 14      [ 1]  200 	bset	21012, #7
+                                    201 ;	inc/i2c.h: 60: I2C_CR1 |= I2C_CR1_PE;
+      0000AE 72 10 52 10      [ 1]  202 	bset	21008, #0
+                                    203 ;	inc/i2c.h: 61: }
+      0000B2 81               [ 4]  204 	ret
+                                    205 ;	inc/i2c.h: 63: void i2c_write_byte(unsigned int addr_dev, unsigned int addr_mem, unsigned int data){
+                                    206 ;	-----------------------------------------
+                                    207 ;	 function i2c_write_byte
+                                    208 ;	-----------------------------------------
+      0000B3                        209 _i2c_write_byte:
+                                    210 ;	inc/i2c.h: 66: while ((I2C_SR3 & I2C_SR3_BUSY)); 
+      0000B3                        211 00101$:
+      0000B3 C6 52 19         [ 1]  212 	ld	a, 0x5219
+      0000B6 A5 02            [ 1]  213 	bcp	a, #0x02
+      0000B8 26 F9            [ 1]  214 	jrne	00101$
+                                    215 ;	inc/i2c.h: 67: I2C_CR2 |= I2C_CR2_START;
+      0000BA 72 10 52 11      [ 1]  216 	bset	21009, #0
+                                    217 ;	inc/i2c.h: 68: while (!(I2C_SR1 & I2C_SR1_SB));   
+      0000BE                        218 00104$:
+      0000BE C6 52 17         [ 1]  219 	ld	a, 0x5217
+      0000C1 44               [ 1]  220 	srl	a
+      0000C2 24 FA            [ 1]  221 	jrnc	00104$
+                                    222 ;	inc/i2c.h: 69: d=I2C_SR3;
+      0000C4 AE 52 19         [ 2]  223 	ldw	x, #0x5219
+      0000C7 F6               [ 1]  224 	ld	a, (x)
+                                    225 ;	inc/i2c.h: 71: I2C_DR = addr_dev;                    
+      0000C8 7B 04            [ 1]  226 	ld	a, (0x04, sp)
+      0000CA C7 52 16         [ 1]  227 	ld	0x5216, a
+                                    228 ;	inc/i2c.h: 72: while (!(I2C_SR1 & I2C_SR1_ADDR));
+      0000CD                        229 00107$:
+      0000CD C6 52 17         [ 1]  230 	ld	a, 0x5217
+      0000D0 A5 02            [ 1]  231 	bcp	a, #0x02
+      0000D2 27 F9            [ 1]  232 	jreq	00107$
+                                    233 ;	inc/i2c.h: 73: d=I2C_SR3;
+      0000D4 AE 52 19         [ 2]  234 	ldw	x, #0x5219
+      0000D7 F6               [ 1]  235 	ld	a, (x)
+                                    236 ;	inc/i2c.h: 74: I2C_CR2 |= (1 << I2C_CR2_ACK);
+      0000D8 72 18 52 11      [ 1]  237 	bset	21009, #4
+                                    238 ;	inc/i2c.h: 76: while (!(I2C_SR1 & I2C_SR1_TXE));
+      0000DC                        239 00110$:
+      0000DC C6 52 17         [ 1]  240 	ld	a, 0x5217
+      0000DF 4D               [ 1]  241 	tnz	a
+      0000E0 2A FA            [ 1]  242 	jrpl	00110$
+                                    243 ;	inc/i2c.h: 77: I2C_DR = addr_mem;
+      0000E2 7B 06            [ 1]  244 	ld	a, (0x06, sp)
+      0000E4 C7 52 16         [ 1]  245 	ld	0x5216, a
+                                    246 ;	inc/i2c.h: 79: while (!(I2C_SR1 & I2C_SR1_TXE));
+      0000E7                        247 00113$:
+      0000E7 C6 52 17         [ 1]  248 	ld	a, 0x5217
+      0000EA 4D               [ 1]  249 	tnz	a
+      0000EB 2A FA            [ 1]  250 	jrpl	00113$
+                                    251 ;	inc/i2c.h: 80: I2C_DR = data;
+      0000ED 7B 08            [ 1]  252 	ld	a, (0x08, sp)
+      0000EF C7 52 16         [ 1]  253 	ld	0x5216, a
+                                    254 ;	inc/i2c.h: 82: while (!(I2C_SR1 & I2C_SR1_TXE)&&!(I2C_SR1 & I2C_SR1_BTF));
+      0000F2                        255 00117$:
+                                    256 ;	inc/i2c.h: 68: while (!(I2C_SR1 & I2C_SR1_SB));   
+      0000F2 C6 52 17         [ 1]  257 	ld	a, 0x5217
+                                    258 ;	inc/i2c.h: 82: while (!(I2C_SR1 & I2C_SR1_TXE)&&!(I2C_SR1 & I2C_SR1_BTF));
+      0000F5 4D               [ 1]  259 	tnz	a
+      0000F6 2B 04            [ 1]  260 	jrmi	00119$
+      0000F8 A5 04            [ 1]  261 	bcp	a, #0x04
+      0000FA 27 F6            [ 1]  262 	jreq	00117$
+      0000FC                        263 00119$:
+                                    264 ;	inc/i2c.h: 83: I2C_CR2 |= I2C_CR2_STOP;       
+      0000FC 72 12 52 11      [ 1]  265 	bset	21009, #1
+                                    266 ;	inc/i2c.h: 84: while (I2C_SR3 & I2C_SR3_MSL);
+      000100                        267 00120$:
+      000100 C6 52 19         [ 1]  268 	ld	a, 0x5219
+      000103 44               [ 1]  269 	srl	a
+      000104 25 FA            [ 1]  270 	jrc	00120$
+                                    271 ;	inc/i2c.h: 85: }
+      000106 81               [ 4]  272 	ret
+                                    273 ;	inc/i2c.h: 87: int i2c_read_byte(unsigned int addr_dev,unsigned int addr_mem){
+                                    274 ;	-----------------------------------------
+                                    275 ;	 function i2c_read_byte
+                                    276 ;	-----------------------------------------
+      000107                        277 _i2c_read_byte:
+                                    278 ;	inc/i2c.h: 90: while ((I2C_SR3 & I2C_SR3_BUSY));
+      000107                        279 00101$:
+      000107 C6 52 19         [ 1]  280 	ld	a, 0x5219
+      00010A A5 02            [ 1]  281 	bcp	a, #0x02
+      00010C 26 F9            [ 1]  282 	jrne	00101$
+                                    283 ;	inc/i2c.h: 91: I2C_CR2 |= I2C_CR2_START;
+      00010E 72 10 52 11      [ 1]  284 	bset	21009, #0
+                                    285 ;	inc/i2c.h: 92: while (!(I2C_SR1 & I2C_SR1_SB));  
+      000112                        286 00104$:
+      000112 C6 52 17         [ 1]  287 	ld	a, 0x5217
+      000115 44               [ 1]  288 	srl	a
+      000116 24 FA            [ 1]  289 	jrnc	00104$
+                                    290 ;	inc/i2c.h: 93: d=I2C_SR3;
+      000118 AE 52 19         [ 2]  291 	ldw	x, #0x5219
+      00011B F6               [ 1]  292 	ld	a, (x)
+                                    293 ;	inc/i2c.h: 95: I2C_DR = addr_dev;                    
+      00011C 7B 04            [ 1]  294 	ld	a, (0x04, sp)
+      00011E 90 97            [ 1]  295 	ld	yl, a
+      000120 AE 52 16         [ 2]  296 	ldw	x, #0x5216
+      000123 90 9F            [ 1]  297 	ld	a, yl
+      000125 F7               [ 1]  298 	ld	(x), a
+                                    299 ;	inc/i2c.h: 96: while (!(I2C_SR1 & I2C_SR1_ADDR));
+      000126                        300 00107$:
+      000126 C6 52 17         [ 1]  301 	ld	a, 0x5217
+      000129 A5 02            [ 1]  302 	bcp	a, #0x02
+      00012B 27 F9            [ 1]  303 	jreq	00107$
+                                    304 ;	inc/i2c.h: 97: d=I2C_SR3;
+      00012D AE 52 19         [ 2]  305 	ldw	x, #0x5219
+      000130 F6               [ 1]  306 	ld	a, (x)
+                                    307 ;	inc/i2c.h: 99: while (!(I2C_SR1 & I2C_SR1_TXE)&&!(I2C_SR1 & I2C_SR1_BTF));
+      000131                        308 00111$:
+                                    309 ;	inc/i2c.h: 92: while (!(I2C_SR1 & I2C_SR1_SB));  
+      000131 C6 52 17         [ 1]  310 	ld	a, 0x5217
+                                    311 ;	inc/i2c.h: 99: while (!(I2C_SR1 & I2C_SR1_TXE)&&!(I2C_SR1 & I2C_SR1_BTF));
+      000134 4D               [ 1]  312 	tnz	a
+      000135 2B 04            [ 1]  313 	jrmi	00113$
+      000137 A5 04            [ 1]  314 	bcp	a, #0x04
+      000139 27 F6            [ 1]  315 	jreq	00111$
+      00013B                        316 00113$:
+                                    317 ;	inc/i2c.h: 100: I2C_DR = addr_mem;              
+      00013B 7B 06            [ 1]  318 	ld	a, (0x06, sp)
+      00013D C7 52 16         [ 1]  319 	ld	0x5216, a
+                                    320 ;	inc/i2c.h: 102: I2C_CR2 |=I2C_CR2_ACK;
+      000140 72 14 52 11      [ 1]  321 	bset	21009, #2
+                                    322 ;	inc/i2c.h: 103: I2C_CR2 |= I2C_CR2_START;
+      000144 72 10 52 11      [ 1]  323 	bset	21009, #0
+                                    324 ;	inc/i2c.h: 105: while (!(I2C_SR1 & I2C_SR1_SB));   
+      000148                        325 00114$:
+      000148 C6 52 17         [ 1]  326 	ld	a, 0x5217
+      00014B 44               [ 1]  327 	srl	a
+      00014C 24 FA            [ 1]  328 	jrnc	00114$
+                                    329 ;	inc/i2c.h: 106: d=I2C_SR3;
+      00014E AE 52 19         [ 2]  330 	ldw	x, #0x5219
+      000151 F6               [ 1]  331 	ld	a, (x)
+                                    332 ;	inc/i2c.h: 107: I2C_DR = addr_dev+1;                    
+      000152 90 9F            [ 1]  333 	ld	a, yl
+      000154 4C               [ 1]  334 	inc	a
+      000155 C7 52 16         [ 1]  335 	ld	0x5216, a
+                                    336 ;	inc/i2c.h: 108: while (!(I2C_SR1 & I2C_SR1_ADDR));
+      000158                        337 00117$:
+      000158 C6 52 17         [ 1]  338 	ld	a, 0x5217
+      00015B A5 02            [ 1]  339 	bcp	a, #0x02
+      00015D 27 F9            [ 1]  340 	jreq	00117$
+                                    341 ;	inc/i2c.h: 109: d=I2C_SR3;
+      00015F AE 52 19         [ 2]  342 	ldw	x, #0x5219
+      000162 F6               [ 1]  343 	ld	a, (x)
+                                    344 ;	inc/i2c.h: 111: while (!(I2C_SR1 & I2C_SR1_RXNE));
+      000163                        345 00120$:
+      000163 C6 52 17         [ 1]  346 	ld	a, 0x5217
+      000166 A5 40            [ 1]  347 	bcp	a, #0x40
+      000168 27 F9            [ 1]  348 	jreq	00120$
+                                    349 ;	inc/i2c.h: 112: d=I2C_DR;
+      00016A C6 52 16         [ 1]  350 	ld	a, 0x5216
+      00016D 5F               [ 1]  351 	clrw	x
+      00016E 97               [ 1]  352 	ld	xl, a
+                                    353 ;	inc/i2c.h: 113: I2C_CR2 &= ~I2C_CR2_ACK;
+      00016F 72 15 52 11      [ 1]  354 	bres	21009, #2
+                                    355 ;	inc/i2c.h: 115: while (!(I2C_SR1 & I2C_SR1_TXE)&&!(I2C_SR1 & I2C_SR1_BTF));
+      000173                        356 00124$:
+                                    357 ;	inc/i2c.h: 92: while (!(I2C_SR1 & I2C_SR1_SB));  
+      000173 C6 52 17         [ 1]  358 	ld	a, 0x5217
+                                    359 ;	inc/i2c.h: 115: while (!(I2C_SR1 & I2C_SR1_TXE)&&!(I2C_SR1 & I2C_SR1_BTF));
+      000176 4D               [ 1]  360 	tnz	a
+      000177 2B 04            [ 1]  361 	jrmi	00126$
+      000179 A5 04            [ 1]  362 	bcp	a, #0x04
+      00017B 27 F6            [ 1]  363 	jreq	00124$
+      00017D                        364 00126$:
+                                    365 ;	inc/i2c.h: 116: I2C_CR2 |= I2C_CR2_STOP;       
+      00017D 72 12 52 11      [ 1]  366 	bset	21009, #1
+                                    367 ;	inc/i2c.h: 117: while (I2C_SR3 & I2C_SR3_MSL);
+      000181                        368 00127$:
+      000181 C6 52 19         [ 1]  369 	ld	a, 0x5219
+      000184 44               [ 1]  370 	srl	a
+      000185 25 FA            [ 1]  371 	jrc	00127$
+                                    372 ;	inc/i2c.h: 119: return d;
+                                    373 ;	inc/i2c.h: 120: }
+      000187 81               [ 4]  374 	ret
+                                    375 ;	main.c: 7: void main(void){
+                                    376 ;	-----------------------------------------
+                                    377 ;	 function main
+                                    378 ;	-----------------------------------------
+      000188                        379 _main:
+                                    380 ;	main.c: 9: clk_init_HSI(); //16MHz
+      000188 CDr00r23         [ 4]  381 	call	_clk_init_HSI
+                                    382 ;	main.c: 10: i2c_init();
+      00018B CDr00rA2         [ 4]  383 	call	_i2c_init
+                                    384 ;	main.c: 12: PC_DDR = 0xFF;                                                    
+      00018E 35 FF 50 0C      [ 1]  385 	mov	0x500c+0, #0xff
+                                    386 ;	main.c: 13: PC_CR1 = 0xFF;                                                      
+      000192 35 FF 50 0D      [ 1]  387 	mov	0x500d+0, #0xff
+                                    388 ;	main.c: 14: PC_CR2 = 0x00;
+      000196 35 00 50 0E      [ 1]  389 	mov	0x500e+0, #0x00
+                                    390 ;	main.c: 15: while(1){
+      00019A                        391 00108$:
+                                    392 ;	main.c: 16: i2c_write_byte(0xA0, 0x01, 0x0C);
+      00019A 4B 0C            [ 1]  393 	push	#0x0c
+      00019C 4B 00            [ 1]  394 	push	#0x00
+      00019E 4B 01            [ 1]  395 	push	#0x01
+      0001A0 4B 00            [ 1]  396 	push	#0x00
+      0001A2 4B A0            [ 1]  397 	push	#0xa0
+      0001A4 4B 00            [ 1]  398 	push	#0x00
+      0001A6 CDr00rB3         [ 4]  399 	call	_i2c_write_byte
+      0001A9 5B 06            [ 2]  400 	addw	sp, #6
+                                    401 ;	main.c: 18: while(t--);
+      0001AB AE 61 A8         [ 2]  402 	ldw	x, #0x61a8
+      0001AE                        403 00101$:
+      0001AE 90 93            [ 1]  404 	ldw	y, x
+      0001B0 5A               [ 2]  405 	decw	x
+      0001B1 90 5D            [ 2]  406 	tnzw	y
+      0001B3 26 F9            [ 1]  407 	jrne	00101$
+                                    408 ;	main.c: 19: data=i2c_read_byte(0xA0,0x01);
+      0001B5 4B 01            [ 1]  409 	push	#0x01
+      0001B7 4B 00            [ 1]  410 	push	#0x00
+      0001B9 4B A0            [ 1]  411 	push	#0xa0
+      0001BB 4B 00            [ 1]  412 	push	#0x00
+      0001BD CDr01r07         [ 4]  413 	call	_i2c_read_byte
+      0001C0 5B 04            [ 2]  414 	addw	sp, #4
+      0001C2 9F               [ 1]  415 	ld	a, xl
+                                    416 ;	main.c: 20: PC_ODR =0;
+      0001C3 35 00 50 0A      [ 1]  417 	mov	0x500a+0, #0x00
+                                    418 ;	main.c: 21: PC_ODR =data;
+      0001C7 C7 50 0A         [ 1]  419 	ld	0x500a, a
+                                    420 ;	main.c: 23: while(t--);
+      0001CA AE 61 A8         [ 2]  421 	ldw	x, #0x61a8
+      0001CD                        422 00104$:
+      0001CD 90 93            [ 1]  423 	ldw	y, x
+      0001CF 5A               [ 2]  424 	decw	x
+      0001D0 90 5D            [ 2]  425 	tnzw	y
+      0001D2 27 C6            [ 1]  426 	jreq	00108$
+      0001D4 20 F7            [ 2]  427 	jra	00104$
+                                    428 ;	main.c: 27: }
+      0001D6 81               [ 4]  429 	ret
+                                    430 	.area CODE
+                                    431 	.area INITIALIZER
+                                    432 	.area CABS (ABS)

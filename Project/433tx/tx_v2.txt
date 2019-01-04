@@ -1,0 +1,79 @@
+#include "inc/stm8s.h"
+#include "inc/clk_init.h"
+#include "inc/gpio_init.h"
+#define out_set_bit PD_ODR|=(1<<4)
+#define out_cli_bit PD_ODR&=~(1<<4)
+//#include "inc/uart1.h"
+//~ volatile unsigned int fl=0;
+//~ ///******************************************************timer_interrupt*/
+void TIM2_update(void) __interrupt(TIM2_OVR_UIF_IRQ)
+{
+    TIM2_SR1 &= ~TIM_SR1_UIF;
+}
+void tim_wait(unsigned char reg_h, unsigned char reg_l)
+{
+        TIM2_ARRH = reg_h;
+        TIM2_ARRL = reg_l;
+        TIM2_CR1 |= TIM_CR1_CEN;
+        __asm__("wfi\n");
+}
+void tx_set_bit()
+{
+        out_set_bit;
+        tim_wait(0x00,0x0f);
+        out_cli_bit;
+        tim_wait(0x00,0x08);
+}
+void tx_cli_bit()
+{
+        out_set_bit;
+        tim_wait(0x00,0x08);
+        out_cli_bit;
+        tim_wait(0x00,0x08);
+}
+void tx_start_bit()
+{
+    int i;
+    for(i=0;i<8;i++)
+    {
+            out_set_bit;
+            tim_wait(0x00,0x02);
+            out_cli_bit;
+            tim_wait(0x00,0x0A);  
+    }
+            out_set_bit;
+            tim_wait(0x00,0x2f);
+            out_cli_bit;
+            tim_wait(0x00,0x08);
+}
+void tx_stop_bit()
+{
+            out_cli_bit;
+            tim_wait(0x00,0xff);
+}
+void send_byte(unsigned char data)
+{
+    int i;
+        tx_start_bit();
+        for(i=0;i<=7;i++)
+        {
+            if(data&(1<<i))tx_set_bit();
+            else if(!(data&(1<<i)))tx_cli_bit();
+        }
+        tx_stop_bit();
+}
+void main(void)
+{
+	clk_init();
+	GPIO_init();
+    TIM2_PSCR = 10;
+    TIM2_CR1|=TIM_CR1_OPM; 
+    TIM2_IER |= TIM_IER_UIE;
+
+    while(1)
+    {
+        send_byte(')');
+        send_byte('A');
+        send_byte('X'); 
+    }
+}

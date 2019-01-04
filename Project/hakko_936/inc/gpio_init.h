@@ -1,0 +1,72 @@
+struct _bits
+{
+  unsigned int bit0:1;
+  unsigned int bit1:1;
+  unsigned int bit2:1;
+  unsigned int bit3:1;
+  unsigned int bit4:1;
+  unsigned int bit5:1;
+  unsigned int bit6:1;
+  unsigned int bit7:1;
+};
+
+#define PD_0 ((struct _bits *)(&PD_ODR))->bit0
+#define PD_1 ((struct _bits *)(&PD_ODR))->bit1
+#define PD_2 ((struct _bits *)(&PD_ODR))->bit2
+#define PD_3 ((struct _bits *)(&PD_ODR))->bit3
+#define PD_4 ((struct _bits *)(&PD_ODR))->bit4
+#define PD_5 ((struct _bits *)(&PD_ODR))->bit5
+#define PD_6 ((struct _bits *)(&PD_ODR))->bit6
+#define PD_7 ((struct _bits *)(&PD_ODR))->bit7
+
+
+
+void gpio_init(void)
+{
+  
+  PA_DDR = 0xFF;                                                        //_______PORT_IN
+   PA_CR1 = 0xFF;                                                       //_______DDR________________CR1______________CR2___________FUNCTION  
+    PA_CR2 = 0x00;                                                      //_______0__________________0________________0_____________bez podtiyzhki,bez prerbIvanii 
+                                                                        //_______0__________________1________________0_____________c podtiyzhkoi,bez prerbIvanii
+  PB_DDR = 0x00;                                                        //_______0__________________0________________1_____________bez podtiyzhki,c prerbIvaniem 
+   PB_CR1 = 0x00;                                                       //_______0__________________1________________1_____________c podtiyzhki,c prerbIvanii
+    PB_CR2 = 0x00;                                                      //_______PORT_OUT
+                                                                        //_______DDR________________CR1______________CR2___________FUNCTION
+  PC_DDR = 0xFF;                                                        //_______1__________________0________________0_____________otkritiy stok
+   PC_CR1 = 0xFF;                                                       //_______1__________________1________________0_____________dvuhtakthiy vihod
+    PC_CR2 = 0x00;                                                      //_______1__________________X________________1_____________skorost' do 10MHz
+                                                                        //_______1__________________X _______________1_____________real'niy otkritiy stok
+  PD_DDR = 0x00;   
+   PD_CR1 = 0x00;  
+    PD_CR2 = 0x00; 
+  
+  PE_DDR = 0xFF;   
+   PE_CR1 = 0xFF;  
+    PE_CR2 = 0x00; 
+  
+  PF_DDR = 0xFF;   
+   PF_CR1 = 0xFF;  
+    PF_CR2 = 0x00; 
+  
+  //PG_DDR = 0xFF;   
+   //PG_CR1 = 0xFF;  
+   // PG_CR2 = 0x00; 
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

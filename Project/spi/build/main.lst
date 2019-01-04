@@ -1,0 +1,369 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ANSI-C Compiler
+                                      3 ; Version 3.8.0 #10562 (Linux)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module main
+                                      6 	.optsdcc -mstm8
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _main
+                                     12 	.globl _delay
+                                     13 	.globl _SPI_deinit
+                                     14 	.globl _chip_deselect
+                                     15 	.globl _chip_select
+                                     16 	.globl _SPI_read
+                                     17 	.globl _SPI_write
+                                     18 	.globl _SPI_init
+                                     19 	.globl _GPIO_init
+                                     20 	.globl _clk_init
+                                     21 ;--------------------------------------------------------
+                                     22 ; ram data
+                                     23 ;--------------------------------------------------------
+                                     24 	.area DATA
+                                     25 ;--------------------------------------------------------
+                                     26 ; ram data
+                                     27 ;--------------------------------------------------------
+                                     28 	.area INITIALIZED
+                                     29 ;--------------------------------------------------------
+                                     30 ; Stack segment in internal ram 
+                                     31 ;--------------------------------------------------------
+                                     32 	.area	SSEG
+      000000                         33 __start__stack:
+      000000                         34 	.ds	1
+                                     35 
+                                     36 ;--------------------------------------------------------
+                                     37 ; absolute external ram data
+                                     38 ;--------------------------------------------------------
+                                     39 	.area DABS (ABS)
+                                     40 
+                                     41 ; default segment ordering for linker
+                                     42 	.area HOME
+                                     43 	.area GSINIT
+                                     44 	.area GSFINAL
+                                     45 	.area CONST
+                                     46 	.area INITIALIZER
+                                     47 	.area CODE
+                                     48 
+                                     49 ;--------------------------------------------------------
+                                     50 ; interrupt vector 
+                                     51 ;--------------------------------------------------------
+                                     52 	.area HOME
+      000000                         53 __interrupt_vect:
+      000000 82v00u00u00             54 	int s_GSINIT ; reset
+                                     55 ;--------------------------------------------------------
+                                     56 ; global & static initialisations
+                                     57 ;--------------------------------------------------------
+                                     58 	.area HOME
+                                     59 	.area GSINIT
+                                     60 	.area GSFINAL
+                                     61 	.area GSINIT
+      000000                         62 __sdcc_gs_init_startup:
+      000000                         63 __sdcc_init_data:
+                                     64 ; stm8_genXINIT() start
+      000000 AEr00r00         [ 2]   65 	ldw x, #l_DATA
+      000003 27 07            [ 1]   66 	jreq	00002$
+      000005                         67 00001$:
+      000005 72 4FuFFuFF      [ 1]   68 	clr (s_DATA - 1, x)
+      000009 5A               [ 2]   69 	decw x
+      00000A 26 F9            [ 1]   70 	jrne	00001$
+      00000C                         71 00002$:
+      00000C AEr00r00         [ 2]   72 	ldw	x, #l_INITIALIZER
+      00000F 27 09            [ 1]   73 	jreq	00004$
+      000011                         74 00003$:
+      000011 D6uFFuFF         [ 1]   75 	ld	a, (s_INITIALIZER - 1, x)
+      000014 D7uFFuFF         [ 1]   76 	ld	(s_INITIALIZED - 1, x), a
+      000017 5A               [ 2]   77 	decw	x
+      000018 26 F7            [ 1]   78 	jrne	00003$
+      00001A                         79 00004$:
+                                     80 ; stm8_genXINIT() end
+                                     81 	.area GSFINAL
+      000000 CCr00r04         [ 2]   82 	jp	__sdcc_program_startup
+                                     83 ;--------------------------------------------------------
+                                     84 ; Home
+                                     85 ;--------------------------------------------------------
+                                     86 	.area HOME
+                                     87 	.area HOME
+      000004                         88 __sdcc_program_startup:
+      000004 CCr00rC3         [ 2]   89 	jp	_main
+                                     90 ;	return from main will return to caller
+                                     91 ;--------------------------------------------------------
+                                     92 ; code
+                                     93 ;--------------------------------------------------------
+                                     94 	.area CODE
+                                     95 ;	inc/clk_init.h: 7: void clk_init(void){    
+                                     96 ;	-----------------------------------------
+                                     97 ;	 function clk_init
+                                     98 ;	-----------------------------------------
+      000000                         99 _clk_init:
+                                    100 ;	inc/clk_init.h: 8: CLK_ECKR|=CLK_ECKR_HSEEN;            
+      000000 72 10 50 C1      [ 1]  101 	bset	20673, #0
+                                    102 ;	inc/clk_init.h: 9: CLK_SWCR|=CLK_SWCR_SWEN;               
+      000004 72 12 50 C5      [ 1]  103 	bset	20677, #1
+                                    104 ;	inc/clk_init.h: 10: while((CLK_ECKR & CLK_ECKR_HSERDY) == 0) {} 
+      000008                        105 00101$:
+      000008 C6 50 C1         [ 1]  106 	ld	a, 0x50c1
+      00000B A5 02            [ 1]  107 	bcp	a, #0x02
+      00000D 27 F9            [ 1]  108 	jreq	00101$
+                                    109 ;	inc/clk_init.h: 11: CLK_CKDIVR = 0;                    
+      00000F 35 00 50 C6      [ 1]  110 	mov	0x50c6+0, #0x00
+                                    111 ;	inc/clk_init.h: 12: CLK_SWR = 0xB4;                    
+      000013 35 B4 50 C4      [ 1]  112 	mov	0x50c4+0, #0xb4
+                                    113 ;	inc/clk_init.h: 13: while ((CLK_SWCR & CLK_SWCR_SWIF) == 0){}
+      000017                        114 00104$:
+      000017 C6 50 C5         [ 1]  115 	ld	a, 0x50c5
+      00001A A5 08            [ 1]  116 	bcp	a, #0x08
+      00001C 27 F9            [ 1]  117 	jreq	00104$
+                                    118 ;	inc/clk_init.h: 14: CLK_CSSR|=CLK_CSSR_CSSEN;
+      00001E 72 10 50 C8      [ 1]  119 	bset	20680, #0
+                                    120 ;	inc/clk_init.h: 15: }
+      000022 81               [ 4]  121 	ret
+                                    122 ;	inc/gpio_init.h: 10: void GPIO_init(void)
+                                    123 ;	-----------------------------------------
+                                    124 ;	 function GPIO_init
+                                    125 ;	-----------------------------------------
+      000023                        126 _GPIO_init:
+                                    127 ;	inc/gpio_init.h: 17: PB_DDR = 0x00;                                                        //_______0__________________0________________1_____________bez podtiyzhki,c prerbIvaniem 
+      000023 35 00 50 07      [ 1]  128 	mov	0x5007+0, #0x00
+                                    129 ;	inc/gpio_init.h: 18: PB_CR1 = 0xff;                                                       //_______0__________________1________________1_____________c podtiyzhki,c prerbIvanii
+      000027 35 FF 50 08      [ 1]  130 	mov	0x5008+0, #0xff
+                                    131 ;	inc/gpio_init.h: 19: PB_CR2 = 0xff;                                                      //_______PORT_OUT
+      00002B 35 FF 50 09      [ 1]  132 	mov	0x5009+0, #0xff
+                                    133 ;	inc/gpio_init.h: 21: PC_DDR = 0xff;                                                        //_______1__________________0________________0_____________otkritiy stok
+      00002F 35 FF 50 0C      [ 1]  134 	mov	0x500c+0, #0xff
+                                    135 ;	inc/gpio_init.h: 22: PC_CR1 = 0xFF;                                                       //_______1__________________1________________0_____________dvuhtakthiy vihod
+      000033 35 FF 50 0D      [ 1]  136 	mov	0x500d+0, #0xff
+                                    137 ;	inc/gpio_init.h: 23: PC_CR2 = 0x00;                                                      //_______1__________________X________________1_____________skorost' do 10MHz
+      000037 35 00 50 0E      [ 1]  138 	mov	0x500e+0, #0x00
+                                    139 ;	inc/gpio_init.h: 25: PD_DDR = 0xFF;   
+      00003B 35 FF 50 11      [ 1]  140 	mov	0x5011+0, #0xff
+                                    141 ;	inc/gpio_init.h: 26: PD_CR1 = 0xFF;  
+      00003F 35 FF 50 12      [ 1]  142 	mov	0x5012+0, #0xff
+                                    143 ;	inc/gpio_init.h: 27: PD_CR2 = 0x00; 
+      000043 35 00 50 13      [ 1]  144 	mov	0x5013+0, #0x00
+                                    145 ;	inc/gpio_init.h: 40: }
+      000047 81               [ 4]  146 	ret
+                                    147 ;	main.c: 6: void SPI_init() {
+                                    148 ;	-----------------------------------------
+                                    149 ;	 function SPI_init
+                                    150 ;	-----------------------------------------
+      000048                        151 _SPI_init:
+                                    152 ;	main.c: 8: PC_DDR |= (1 << CS_PIN);
+      000048 72 18 50 0C      [ 1]  153 	bset	20492, #4
+                                    154 ;	main.c: 9: PC_CR1 |= (1 << CS_PIN);
+      00004C 72 18 50 0D      [ 1]  155 	bset	20493, #4
+                                    156 ;	main.c: 10: PC_ODR |= (1 << CS_PIN);
+      000050 72 18 50 0A      [ 1]  157 	bset	20490, #4
+                                    158 ;	main.c: 12: SPI_CR2 = SPI_CR2_SSM | SPI_CR2_SSI;//без этой настройки требуется подключить вывод NSS к VDD
+      000054 35 03 52 01      [ 1]  159 	mov	0x5201+0, #0x03
+                                    160 ;	main.c: 13: SPI_CR1 = SPI_CR1_MSTR | SPI_CR1_SPE | SPI_CR1_BR0;// | SPI_CR1_BR2;//??????SPI_CR1_BR(0)???????
+      000058 35 4C 52 00      [ 1]  161 	mov	0x5200+0, #0x4c
+                                    162 ;	main.c: 15: }
+      00005C 81               [ 4]  163 	ret
+                                    164 ;	main.c: 17: void SPI_write(int data) {
+                                    165 ;	-----------------------------------------
+                                    166 ;	 function SPI_write
+                                    167 ;	-----------------------------------------
+      00005D                        168 _SPI_write:
+                                    169 ;	main.c: 18: SPI_DR = data;
+      00005D 7B 04            [ 1]  170 	ld	a, (0x04, sp)
+      00005F C7 52 04         [ 1]  171 	ld	0x5204, a
+                                    172 ;	main.c: 19: while (!(SPI_SR & SPI_SR_TXE));
+      000062                        173 00101$:
+      000062 C6 52 03         [ 1]  174 	ld	a, 0x5203
+      000065 A5 02            [ 1]  175 	bcp	a, #0x02
+      000067 27 F9            [ 1]  176 	jreq	00101$
+                                    177 ;	main.c: 20: }
+      000069 81               [ 4]  178 	ret
+                                    179 ;	main.c: 21: int SPI_read() {
+                                    180 ;	-----------------------------------------
+                                    181 ;	 function SPI_read
+                                    182 ;	-----------------------------------------
+      00006A                        183 _SPI_read:
+                                    184 ;	main.c: 22: SPI_write(0xFF);
+      00006A 4B FF            [ 1]  185 	push	#0xff
+      00006C 4B 00            [ 1]  186 	push	#0x00
+      00006E CDr00r5D         [ 4]  187 	call	_SPI_write
+      000071 5B 02            [ 2]  188 	addw	sp, #2
+                                    189 ;	main.c: 23: while (!(SPI_SR & SPI_SR_RXNE));
+      000073                        190 00101$:
+      000073 C6 52 03         [ 1]  191 	ld	a, 0x5203
+      000076 44               [ 1]  192 	srl	a
+      000077 24 FA            [ 1]  193 	jrnc	00101$
+                                    194 ;	main.c: 24: return SPI_DR;
+      000079 C6 52 04         [ 1]  195 	ld	a, 0x5204
+      00007C 5F               [ 1]  196 	clrw	x
+      00007D 97               [ 1]  197 	ld	xl, a
+                                    198 ;	main.c: 25: }
+      00007E 81               [ 4]  199 	ret
+                                    200 ;	main.c: 26: void chip_select() {
+                                    201 ;	-----------------------------------------
+                                    202 ;	 function chip_select
+                                    203 ;	-----------------------------------------
+      00007F                        204 _chip_select:
+                                    205 ;	main.c: 27: PC_ODR &= ~(1 << CS_PIN);
+      00007F 72 19 50 0A      [ 1]  206 	bres	20490, #4
+                                    207 ;	main.c: 28: }
+      000083 81               [ 4]  208 	ret
+                                    209 ;	main.c: 29: void chip_deselect() {
+                                    210 ;	-----------------------------------------
+                                    211 ;	 function chip_deselect
+                                    212 ;	-----------------------------------------
+      000084                        213 _chip_deselect:
+                                    214 ;	main.c: 30: while ((SPI_SR & SPI_SR_BSY));
+      000084                        215 00101$:
+      000084 C6 52 03         [ 1]  216 	ld	a, 0x5203
+      000087 2B FB            [ 1]  217 	jrmi	00101$
+                                    218 ;	main.c: 31: PC_ODR |= (1 << CS_PIN);
+      000089 72 18 50 0A      [ 1]  219 	bset	20490, #4
+                                    220 ;	main.c: 32: }
+      00008D 81               [ 4]  221 	ret
+                                    222 ;	main.c: 33: void SPI_deinit() {
+                                    223 ;	-----------------------------------------
+                                    224 ;	 function SPI_deinit
+                                    225 ;	-----------------------------------------
+      00008E                        226 _SPI_deinit:
+                                    227 ;	main.c: 34: while (!(SPI_SR & SPI_SR_RXNE));
+      00008E                        228 00101$:
+      00008E C6 52 03         [ 1]  229 	ld	a, 0x5203
+      000091 97               [ 1]  230 	ld	xl, a
+      000092 44               [ 1]  231 	srl	a
+      000093 24 F9            [ 1]  232 	jrnc	00101$
+                                    233 ;	main.c: 35: while (!(SPI_SR & SPI_SR_TXE));
+      000095 9F               [ 1]  234 	ld	a, xl
+      000096 A4 02            [ 1]  235 	and	a, #0x02
+      000098                        236 00104$:
+      000098 4D               [ 1]  237 	tnz	a
+      000099 27 FD            [ 1]  238 	jreq	00104$
+                                    239 ;	main.c: 36: while ((SPI_SR & SPI_SR_BSY));
+      00009B 9F               [ 1]  240 	ld	a, xl
+      00009C A4 80            [ 1]  241 	and	a, #0x80
+      00009E                        242 00107$:
+      00009E 4D               [ 1]  243 	tnz	a
+      00009F 26 FD            [ 1]  244 	jrne	00107$
+                                    245 ;	main.c: 37: SPI_CR1 &=~ SPI_CR1_SPE;
+      0000A1 72 1D 52 00      [ 1]  246 	bres	20992, #6
+                                    247 ;	main.c: 38: }
+      0000A5 81               [ 4]  248 	ret
+                                    249 ;	main.c: 39: void delay(int t)
+                                    250 ;	-----------------------------------------
+                                    251 ;	 function delay
+                                    252 ;	-----------------------------------------
+      0000A6                        253 _delay:
+      0000A6 52 02            [ 2]  254 	sub	sp, #2
+                                    255 ;	main.c: 42: for(i=0;i<t;i++)
+      0000A8 5F               [ 1]  256 	clrw	x
+      0000A9                        257 00107$:
+      0000A9 13 05            [ 2]  258 	cpw	x, (0x05, sp)
+      0000AB 2E 13            [ 1]  259 	jrsge	00109$
+                                    260 ;	main.c: 44: for(s=0;s<512;s++)
+      0000AD 0F 02            [ 1]  261 	clr	(0x02, sp)
+      0000AF A6 02            [ 1]  262 	ld	a, #0x02
+      0000B1 6B 01            [ 1]  263 	ld	(0x01, sp), a
+      0000B3                        264 00105$:
+      0000B3 16 01            [ 2]  265 	ldw	y, (0x01, sp)
+      0000B5 90 5A            [ 2]  266 	decw	y
+      0000B7 17 01            [ 2]  267 	ldw	(0x01, sp), y
+      0000B9 90 5D            [ 2]  268 	tnzw	y
+      0000BB 26 F6            [ 1]  269 	jrne	00105$
+                                    270 ;	main.c: 42: for(i=0;i<t;i++)
+      0000BD 5C               [ 1]  271 	incw	x
+      0000BE 20 E9            [ 2]  272 	jra	00107$
+      0000C0                        273 00109$:
+                                    274 ;	main.c: 48: }
+      0000C0 5B 02            [ 2]  275 	addw	sp, #2
+      0000C2 81               [ 4]  276 	ret
+                                    277 ;	main.c: 50: void main(void)
+                                    278 ;	-----------------------------------------
+                                    279 ;	 function main
+                                    280 ;	-----------------------------------------
+      0000C3                        281 _main:
+      0000C3 52 10            [ 2]  282 	sub	sp, #16
+                                    283 ;	main.c: 52: clk_init();
+      0000C5 CDr00r00         [ 4]  284 	call	_clk_init
+                                    285 ;	main.c: 53: GPIO_init();
+      0000C8 CDr00r23         [ 4]  286 	call	_GPIO_init
+                                    287 ;	main.c: 54: int data[]={'t','e','s','t','\n','\r'};
+      0000CB 96               [ 1]  288 	ldw	x, sp
+      0000CC 5C               [ 1]  289 	incw	x
+      0000CD 1F 0D            [ 2]  290 	ldw	(0x0d, sp), x
+      0000CF 90 AE 00 74      [ 2]  291 	ldw	y, #0x0074
+      0000D3 FF               [ 2]  292 	ldw	(x), y
+      0000D4 1E 0D            [ 2]  293 	ldw	x, (0x0d, sp)
+      0000D6 90 AE 00 65      [ 2]  294 	ldw	y, #0x0065
+      0000DA EF 02            [ 2]  295 	ldw	(0x02, x), y
+      0000DC 1E 0D            [ 2]  296 	ldw	x, (0x0d, sp)
+      0000DE 90 AE 00 73      [ 2]  297 	ldw	y, #0x0073
+      0000E2 EF 04            [ 2]  298 	ldw	(0x0004, x), y
+      0000E4 1E 0D            [ 2]  299 	ldw	x, (0x0d, sp)
+      0000E6 90 AE 00 74      [ 2]  300 	ldw	y, #0x0074
+      0000EA EF 06            [ 2]  301 	ldw	(0x0006, x), y
+      0000EC 1E 0D            [ 2]  302 	ldw	x, (0x0d, sp)
+      0000EE 90 AE 00 0A      [ 2]  303 	ldw	y, #0x000a
+      0000F2 EF 08            [ 2]  304 	ldw	(0x0008, x), y
+      0000F4 1E 0D            [ 2]  305 	ldw	x, (0x0d, sp)
+      0000F6 1C 00 0A         [ 2]  306 	addw	x, #0x000a
+      0000F9 90 AE 00 0D      [ 2]  307 	ldw	y, #0x000d
+      0000FD FF               [ 2]  308 	ldw	(x), y
+                                    309 ;	main.c: 55: PC_DDR |= (1 << CS_PIN);
+      0000FE 72 18 50 0C      [ 1]  310 	bset	20492, #4
+                                    311 ;	main.c: 56: PC_CR1 |= (1 << CS_PIN);
+      000102 72 18 50 0D      [ 1]  312 	bset	20493, #4
+                                    313 ;	main.c: 57: PC_ODR |= (1 << CS_PIN);
+      000106 72 18 50 0A      [ 1]  314 	bset	20490, #4
+                                    315 ;	main.c: 59: SPI_init();
+      00010A CDr00r48         [ 4]  316 	call	_SPI_init
+                                    317 ;	main.c: 60: PD_ODR|=(1<<0);
+      00010D C6 50 0F         [ 1]  318 	ld	a, 0x500f
+      000110 AA 01            [ 1]  319 	or	a, #0x01
+      000112 C7 50 0F         [ 1]  320 	ld	0x500f, a
+                                    321 ;	main.c: 61: while (1) {
+      000115                        322 00103$:
+                                    323 ;	main.c: 62: chip_select();
+      000115 CDr00r7F         [ 4]  324 	call	_chip_select
+                                    325 ;	main.c: 63: for(int i=0;i<6;i++){
+      000118 5F               [ 1]  326 	clrw	x
+      000119 1F 0F            [ 2]  327 	ldw	(0x0f, sp), x
+      00011B                        328 00106$:
+      00011B 1E 0F            [ 2]  329 	ldw	x, (0x0f, sp)
+      00011D A3 00 06         [ 2]  330 	cpw	x, #0x0006
+      000120 2E 1D            [ 1]  331 	jrsge	00101$
+                                    332 ;	main.c: 64: SPI_write(data[i]);
+      000122 1E 0F            [ 2]  333 	ldw	x, (0x0f, sp)
+      000124 58               [ 2]  334 	sllw	x
+      000125 72 FB 0D         [ 2]  335 	addw	x, (0x0d, sp)
+      000128 FE               [ 2]  336 	ldw	x, (x)
+      000129 89               [ 2]  337 	pushw	x
+      00012A CDr00r5D         [ 4]  338 	call	_SPI_write
+      00012D 5B 02            [ 2]  339 	addw	sp, #2
+                                    340 ;	main.c: 65: delay(1);
+      00012F 4B 01            [ 1]  341 	push	#0x01
+      000131 4B 00            [ 1]  342 	push	#0x00
+      000133 CDr00rA6         [ 4]  343 	call	_delay
+      000136 5B 02            [ 2]  344 	addw	sp, #2
+                                    345 ;	main.c: 63: for(int i=0;i<6;i++){
+      000138 1E 0F            [ 2]  346 	ldw	x, (0x0f, sp)
+      00013A 5C               [ 1]  347 	incw	x
+      00013B 1F 0F            [ 2]  348 	ldw	(0x0f, sp), x
+      00013D 20 DC            [ 2]  349 	jra	00106$
+      00013F                        350 00101$:
+                                    351 ;	main.c: 67: chip_deselect();
+      00013F CDr00r84         [ 4]  352 	call	_chip_deselect
+                                    353 ;	main.c: 68: delay(500);
+      000142 4B F4            [ 1]  354 	push	#0xf4
+      000144 4B 01            [ 1]  355 	push	#0x01
+      000146 CDr00rA6         [ 4]  356 	call	_delay
+      000149 5B 02            [ 2]  357 	addw	sp, #2
+                                    358 ;	main.c: 69: PD_ODR &=~ (1<<0);
+      00014B C6 50 0F         [ 1]  359 	ld	a, 0x500f
+      00014E A4 FE            [ 1]  360 	and	a, #0xfe
+      000150 C7 50 0F         [ 1]  361 	ld	0x500f, a
+      000153 20 C0            [ 2]  362 	jra	00103$
+                                    363 ;	main.c: 71: }
+      000155 5B 10            [ 2]  364 	addw	sp, #16
+      000157 81               [ 4]  365 	ret
+                                    366 	.area CODE
+                                    367 	.area CONST
+                                    368 	.area INITIALIZER
+                                    369 	.area CABS (ABS)
