@@ -208,7 +208,9 @@
 
 #define SPI_CR1_LSBFIRST (1 << 7)
 #define SPI_CR1_SPE (1 << 6)
-#define SPI_CR1_BR(br) ((br) << 3)
+#define SPI_CR1_BR2 (1 << 5)
+#define SPI_CR1_BR1 (1 << 4)
+#define SPI_CR1_BR0 (1 << 3)
 #define SPI_CR1_MSTR (1 << 2)
 #define SPI_CR1_CPOL (1 << 1)
 #define SPI_CR1_CPHA (1 << 0)
