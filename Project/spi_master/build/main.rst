@@ -337,33 +337,28 @@
       008114                        337 00105$:
                                     338 ;	main.c: 27: chip_select();
       008114 CD 80 C5         [ 4]  339 	call	_chip_select
-                                    340 ;	main.c: 28: SPI_write(data);
-      008117 4B 44            [ 1]  341 	push	#0x44
-      008119 4B 00            [ 1]  342 	push	#0x00
-      00811B CD 80 A3         [ 4]  343 	call	_SPI_write
-      00811E 5B 02            [ 2]  344 	addw	sp, #2
-                                    345 ;	main.c: 29: res=SPI_read();
-      008120 CD 80 B0         [ 4]  346 	call	_SPI_read
-      008123 1F 01            [ 2]  347 	ldw	(0x01, sp), x
-                                    348 ;	main.c: 30: chip_deselect();
-      008125 CD 80 CA         [ 4]  349 	call	_chip_deselect
-                                    350 ;	main.c: 31: while (!(UART1_SR & UART1_SR_TXE)) {}
-      008128                        351 00101$:
-      008128 C6 52 30         [ 1]  352 	ld	a, 0x5230
-      00812B 2A FB            [ 1]  353 	jrpl	00101$
-                                    354 ;	main.c: 32: UART1_DR=res;
-      00812D 7B 02            [ 1]  355 	ld	a, (0x02, sp)
-      00812F C7 52 31         [ 1]  356 	ld	0x5231, a
-                                    357 ;	main.c: 33: delay(50);
-      008132 4B 32            [ 1]  358 	push	#0x32
-      008134 4B 00            [ 1]  359 	push	#0x00
-      008136 CD 80 EC         [ 4]  360 	call	_delay
-      008139 5B 02            [ 2]  361 	addw	sp, #2
-      00813B 20 D7            [ 2]  362 	jra	00105$
-                                    363 ;	main.c: 35: }
-      00813D 5B 02            [ 2]  364 	addw	sp, #2
-      00813F 81               [ 4]  365 	ret
-                                    366 	.area CODE
-                                    367 	.area CONST
-                                    368 	.area INITIALIZER
-                                    369 	.area CABS (ABS)
+                                    340 ;	main.c: 29: res=SPI_read();
+      008117 CD 80 B0         [ 4]  341 	call	_SPI_read
+      00811A 1F 01            [ 2]  342 	ldw	(0x01, sp), x
+                                    343 ;	main.c: 30: chip_deselect();
+      00811C CD 80 CA         [ 4]  344 	call	_chip_deselect
+                                    345 ;	main.c: 31: while (!(UART1_SR & UART1_SR_TXE)) {}
+      00811F                        346 00101$:
+      00811F C6 52 30         [ 1]  347 	ld	a, 0x5230
+      008122 2A FB            [ 1]  348 	jrpl	00101$
+                                    349 ;	main.c: 32: UART1_DR=res;
+      008124 7B 02            [ 1]  350 	ld	a, (0x02, sp)
+      008126 C7 52 31         [ 1]  351 	ld	0x5231, a
+                                    352 ;	main.c: 33: delay(50);
+      008129 4B 32            [ 1]  353 	push	#0x32
+      00812B 4B 00            [ 1]  354 	push	#0x00
+      00812D CD 80 EC         [ 4]  355 	call	_delay
+      008130 5B 02            [ 2]  356 	addw	sp, #2
+      008132 20 E0            [ 2]  357 	jra	00105$
+                                    358 ;	main.c: 35: }
+      008134 5B 02            [ 2]  359 	addw	sp, #2
+      008136 81               [ 4]  360 	ret
+                                    361 	.area CODE
+                                    362 	.area CONST
+                                    363 	.area INITIALIZER
+                                    364 	.area CABS (ABS)

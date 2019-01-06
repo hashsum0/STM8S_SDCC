@@ -337,11 +337,6 @@ _main:
 00105$:
 ;	main.c: 27: chip_select();
 	call	_chip_select
-;	main.c: 28: SPI_write(data);
-	push	#0x44
-	push	#0x00
-	call	_SPI_write
-	addw	sp, #2
 ;	main.c: 29: res=SPI_read();
 	call	_SPI_read
 	ldw	(0x01, sp), x

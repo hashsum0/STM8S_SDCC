@@ -1,35 +1,30 @@
 #include "inc/stm8s.h"
 #include "inc/clk_init.h"
 #include "inc/uart1.h"
-#include "inc/spi_master.h"
-
-
-
+#include "inc/spi_nrf24.h"
 void delay(int t)
 {
-	int i,s;
-	for(i=0;i<t;i++)
-	{
-		for(s=0;s<512;s++)
-		{
-		}
-	}
+    int i,s;
+    for(i=0;i<t;i++){
+        for(s=0;s<255;s++){
+        }
+    }
 }
+
 ///*******************************************************main*/
 void main(void)
 {
-    clk_init();
-	uart1_init();
-    int data=0xAA;
-    int res=0;
+    int i=0;
+    Init_HSE();
     SPI_init();
+    uart1_init();
+    
     while (1) {
+        delay(10);
         chip_select();
-        //SPI_write(data);
-        res=SPI_read();
+        SPI_read_status();
         chip_deselect();
         while (!(UART1_SR & UART1_SR_TXE)) {}
-          UART1_DR=res;
-        delay(50);
+        UART1_DR=i+48;
     }
 }
