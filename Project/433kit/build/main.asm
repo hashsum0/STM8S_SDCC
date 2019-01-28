@@ -13,7 +13,7 @@
 	.globl _TIM2_update
 	.globl _GPIO_init
 	.globl _clk_init
-	.globl _timer
+	.globl _flag
 ;--------------------------------------------------------
 ; ram data
 ;--------------------------------------------------------
@@ -22,7 +22,7 @@
 ; ram data
 ;--------------------------------------------------------
 	.area INITIALIZED
-_timer::
+_flag::
 	.ds 1
 ;--------------------------------------------------------
 ; Stack segment in internal ram 
@@ -157,182 +157,278 @@ _GPIO_init:
 	mov	0x5013+0, #0x00
 ;	inc/gpio_init.h: 40: }
 	ret
-;	main.c: 7: INTERRUPT_HANDLER(TIM2_update,TIM2_OVR_UIF_IRQ)
+;	main.c: 15: INTERRUPT_HANDLER(TIM2_update,TIM2_OVR_UIF_IRQ){
 ;	-----------------------------------------
 ;	 function TIM2_update
 ;	-----------------------------------------
 _TIM2_update:
-;	main.c: 9: timer=1;
-	mov	_timer+0, #0x01
-;	main.c: 10: TIM2_SR1&=~TIM_SR1_UIF;
+;	main.c: 16: SetBit(flag,tim_end);
+	bset	_flag+0, #1
+;	main.c: 17: TIM2_SR1&=~TIM_SR1_UIF;
 	bres	21252, #0
-;	main.c: 11: }
+;	main.c: 18: }
 	iret
-;	main.c: 13: INTERRUPT_HANDLER(EXTI,4)         
+;	main.c: 20: INTERRUPT_HANDLER(EXTI,4){
 ;	-----------------------------------------
 ;	 function EXTI
 ;	-----------------------------------------
 _EXTI:
-;	main.c: 15: TIM2_CR1 |= TIM_CR1_CEN;
-	bset	21248, #0
-;	main.c: 16: }
+;	main.c: 21: SetBit(flag,ext_intrrpt);
+	bset	_flag+0, #0
+;	main.c: 22: }
 	iret
-;	main.c: 18: void main(void)
+;	main.c: 24: void main(void){
 ;	-----------------------------------------
 ;	 function main
 ;	-----------------------------------------
 _main:
-	sub	sp, #5
-;	main.c: 20: unsigned char resiver=0;
-	clr	(0x03, sp)
-;	main.c: 21: unsigned char i=0;
-	clr	(0x05, sp)
-;	main.c: 23: unsigned char startrx=0;
-	clr	(0x04, sp)
-;	main.c: 24: clk_init();
+	sub	sp, #2
+;	main.c: 25: unsigned char resiver=0;
+	clr	a
+	ld	xl, a
+;	main.c: 26: unsigned char i=0;
+	clr	a
+	ld	xh, a
+;	main.c: 27: clk_init();
+	pushw	x
 	call	_clk_init
-;	main.c: 25: GPIO_init();
 	call	_GPIO_init
-;	main.c: 26: TIM2_PSCR = 8;
+	popw	x
+;	main.c: 29: TIM2_PSCR = 8;
 	mov	0x530e+0, #0x08
-;	main.c: 27: TIM2_ARRH = 0x00;
-	mov	0x530f+0, #0x00
-;	main.c: 28: TIM2_ARRL = 0xff;//880uS
-	mov	0x5310+0, #0xff
-;	main.c: 29: TIM2_CR1 |= TIM_CR1_OPM; 
+;	main.c: 30: TIM2_CR1 |= TIM_CR1_OPM; 
 	bset	21248, #3
-;	main.c: 30: TIM2_IER |= TIM_IER_UIE;
+;	main.c: 31: TIM2_IER |= TIM_IER_UIE;
 	ld	a, 0x5303
 	or	a, #0x01
 	ld	0x5303, a
-;	main.c: 31: EXTI_CR1=4;//00: Падающий фронт и низкий уровень/01: только передний край/10: только падающая кромка/11: Восходящий и опускающийся край
+;	main.c: 32: EXTI_CR1=4;//00: Падающий фронт и низкий уровень/01: только передний край/10: только падающая кромка/11: Восходящий и опускающийся край
 	mov	0x50a0+0, #0x04
-;	main.c: 32: __asm__("rim\n");
+;	main.c: 33: __asm__("rim\n");
 	rim
-;	main.c: 33: PD_ODR=0x00;
+;	main.c: 34: PD_ODR=0x00;
 	mov	0x500f+0, #0x00
-;	main.c: 36: while(!(timer)){
-00101$:
-	tnz	_timer+0
-	jrne	00103$
-;	main.c: 37: PD_ODR^=(1<<7),t=0;
-	bcpl	20495, #7
-	jra	00101$
-00103$:
-;	main.c: 41: timer=0;
-	clr	_timer+0
-;	main.c: 42: TIM2_ARRH = 0x00;
-	mov	0x530f+0, #0x00
-;	main.c: 44: if(PB_IDR&(1<<7) && !startrx)
-	ld	a, 0x5006
-	and	a, #0x80
-	ld	(0x02, sp), a
-	jreq	00112$
-	tnz	(0x04, sp)
-	jrne	00112$
-;	main.c: 45: startrx=1,
-	ld	a, #0x01
-	ld	(0x04, sp), a
-;	main.c: 46: TIM2_ARRL = 0xaf;
-	mov	0x5310+0, #0xaf
-	jra	00113$
+;	main.c: 37: while(!(GetBit(flag,startbit))){//wait startbit
 00112$:
-;	main.c: 48: resiver|=(1<<i),
-	ld	a, (0x05, sp)
-	ld	xh, a
-	ld	a, (0x03, sp)
-	ld	(0x01, sp), a
-;	main.c: 49: i++;
-	ld	a, (0x05, sp)
-	inc	a
+	btjf	_flag+0, #4, 00257$
+	jra	00130$
+00257$:
+;	main.c: 38: if(GetBit(flag,ext_intrrpt)){
+	btjt	_flag+0, #0, 00259$
+	jra	00105$
+00259$:
+;	main.c: 39: if(!(GetBit(flag,tim_count))){
+	btjf	_flag+0, #2, 00261$
+	jra	00102$
+00261$:
+;	main.c: 40: TIM2_ARRH = 0x01;
+	mov	0x530f+0, #0x01
+;	main.c: 41: TIM2_ARRL = 0xdf;  
+	mov	0x5310+0, #0xdf
+;	main.c: 42: TIM2_CR1 |= TIM_CR1_CEN;
+	bset	21248, #0
+;	main.c: 43: SetBit(flag,tim_count);
+	bset	_flag+0, #2
+;	main.c: 44: ClearBit(flag,ext_intrrpt);            
+	bres	_flag+0, #0
+	jra	00105$
+00102$:
+;	main.c: 46: SetBit(flag,err_tim_count);
+	bset	_flag+0, #3
+;	main.c: 47: ClearBit(flag,ext_intrrpt);
+	bres	_flag+0, #0
+00105$:
+;	main.c: 50: if(GetBit(flag,tim_end)){
+	btjt	_flag+0, #1, 00263$
+	jra	00112$
+00263$:
+;	main.c: 51: if(!(GetBit(flag,err_tim_count)) && PB_IDR&(1<<7)){
+	btjf	_flag+0, #3, 00265$
+	jra	00107$
+00265$:
+	ld	a, 0x5006
+	jrpl	00107$
+;	main.c: 52: ClearBit(flag,tim_count);
+	bres	_flag+0, #2
+;	main.c: 53: ClearBit(flag,tim_end);
+	bres	_flag+0, #1
+;	main.c: 54: SetBit(flag,startbit);
+	bset	_flag+0, #4
+	jra	00112$
+00107$:
+;	main.c: 56: ClearBit(flag,tim_end);
+	bres	_flag+0, #1
+;	main.c: 57: ClearBit(flag,err_tim_count);
+	bres	_flag+0, #3
+;	main.c: 58: ClearBit(flag,tim_count); 
+	bres	_flag+0, #2
+	jra	00112$
+;	main.c: 63: while(i<8){//wait startbit
+00130$:
+	ld	a, xh
+	cp	a, #0x08
+	clr	a
+	rlc	a
+	jrne	00267$
+	jp	00132$
+00267$:
+;	main.c: 64: if(GetBit(flag,ext_intrrpt)){
+	btjt	_flag+0, #0, 00269$
+	jra	00119$
+00269$:
+;	main.c: 65: if(!(GetBit(flag,tim_count))){
+	btjf	_flag+0, #2, 00271$
+	jra	00116$
+00271$:
+;	main.c: 66: TIM2_ARRH = 0x00;
+	mov	0x530f+0, #0x00
+;	main.c: 67: TIM2_ARRL = 0xaf;  
+	mov	0x5310+0, #0xaf
+;	main.c: 68: TIM2_CR1 |= TIM_CR1_CEN;
+	bset	21248, #0
+;	main.c: 69: SetBit(flag,tim_count);
+	bset	_flag+0, #2
+;	main.c: 70: ClearBit(flag,ext_intrrpt);            
+	bres	_flag+0, #0
+	jra	00119$
+00116$:
+;	main.c: 72: SetBit(flag,err_tim_count);
+	bset	_flag+0, #3
+;	main.c: 73: ClearBit(flag,ext_intrrpt);
+	bres	_flag+0, #0
+00119$:
+;	main.c: 76: if(GetBit(flag,tim_end)){
+	btjt	_flag+0, #1, 00273$
+	jra	00130$
+00273$:
+;	main.c: 77: if(!(GetBit(flag,err_tim_count)) && PB_IDR&(1<<7)){
+	btjf	_flag+0, #3, 00275$
+	jra	00125$
+00275$:
+	ld	a, 0x5006
+	jrpl	00125$
+;	main.c: 78: resiver|=(1<<i),
+	ld	a, xh
+	push	a
+	ld	a, #0x01
+	ld	(0x03, sp), a
+	pop	a
+	tnz	a
+	jreq	00278$
+00277$:
+	sll	(0x02, sp)
+	dec	a
+	jrne	00277$
+00278$:
+	ld	a, xl
+	or	a, (0x02, sp)
 	ld	xl, a
-;	main.c: 48: resiver|=(1<<i),
+;	main.c: 79: i++;
+	addw	x, #256
+;	main.c: 80: ClearBit(flag,tim_count);
+	bres	_flag+0, #2
+;	main.c: 81: ClearBit(flag,tim_end);
+	bres	_flag+0, #1
+	jra	00130$
+00125$:
+;	main.c: 82: }else if(!(GetBit(flag,err_tim_count)) && !(PB_IDR&(1<<7))){
+	ld	a, _flag+0
+	and	a, #0x08
+;	main.c: 53: ClearBit(flag,tim_end);
+	push	a
+	ld	a, _flag+0
+	and	a, #0xfd
+	ld	(0x02, sp), a
+	pop	a
+;	main.c: 82: }else if(!(GetBit(flag,err_tim_count)) && !(PB_IDR&(1<<7))){
+	tnz	a
+	jrne	00121$
+	ld	a, 0x5006
+	jrmi	00121$
+;	main.c: 83: resiver&=~(1<<i),
+	ldw	y, x
 	ld	a, #0x01
 	push	a
-	ld	a, xh
+	ld	a, yh
 	tnz	a
-	jreq	00202$
-00201$:
+	jreq	00282$
+00281$:
 	sll	(1, sp)
 	dec	a
-	jrne	00201$
-00202$:
+	jrne	00281$
+00282$:
 	pop	a
-;	main.c: 47: else if(PB_IDR&(1<<7) && startrx)
-	tnz	(0x02, sp)
-	jreq	00108$
-	tnz	(0x04, sp)
-	jreq	00108$
-;	main.c: 48: resiver|=(1<<i),
-	or	a, (0x01, sp)
-	ld	(0x03, sp), a
-;	main.c: 49: i++;
-	exg	a, xl
-	ld	(0x05, sp), a
-	exg	a, xl
-	jra	00113$
-00108$:
-;	main.c: 50: else if(!(PB_IDR&(1<<7)) && startrx)
-	tnz	(0x02, sp)
-	jrne	00113$
-	tnz	(0x04, sp)
-	jreq	00113$
-;	main.c: 51: resiver&=~(1<<i),
 	cpl	a
-	and	a, (0x01, sp)
-	ld	(0x03, sp), a
-;	main.c: 52: i++;
-	exg	a, xl
-	ld	(0x05, sp), a
-	exg	a, xl
-00113$:
-;	main.c: 54: if(i>=8){
-	ld	a, (0x05, sp)
-	cp	a, #0x08
-	jrc	00101$
-;	main.c: 55: i=0;
-	clr	(0x05, sp)
-;	main.c: 56: startrx=0;
-	clr	(0x04, sp)
-;	main.c: 57: TIM2_ARRL = 0xff;
-	mov	0x5310+0, #0xff
-;	main.c: 58: if(resiver=='D')
-	ld	a, (0x03, sp)
-	cp	a, #0x44
-	jrne	00124$
-;	main.c: 59: PD_ODR=0x01;
-	mov	0x500f+0, #0x01
-	jp	00101$
-00124$:
-;	main.c: 60: else if(resiver=='A')
-	ld	a, (0x03, sp)
-	cp	a, #0x41
-	jrne	00121$
-;	main.c: 61: PD_ODR=0x10;
-	mov	0x500f+0, #0x10
-	jp	00101$
+	pushw	x
+	and	a, (2, sp)
+	popw	x
+	ld	xl, a
+;	main.c: 84: i++;
+	addw	x, #256
+;	main.c: 85: ClearBit(flag,tim_end);
+	ld	a, (0x01, sp)
+	ld	_flag+0, a
+;	main.c: 86: ClearBit(flag,tim_count);
+	bres	_flag+0, #2
+	jp	00130$
 00121$:
-;	main.c: 62: else if(resiver=='B')
-	ld	a, (0x03, sp)
+;	main.c: 88: ClearBit(flag,tim_end);
+	ld	a, (0x01, sp)
+	ld	_flag+0, a
+;	main.c: 89: ClearBit(flag,err_tim_count);
+	bres	_flag+0, #3
+;	main.c: 90: ClearBit(flag,tim_count); 
+	bres	_flag+0, #2
+	jp	00130$
+00132$:
+;	main.c: 94: __asm__("sim\n");
+	sim
+;	main.c: 95: if(i>=8){
+	tnz	a
+	jrne	00145$
+;	main.c: 96: i=0;
+	clr	a
+	ld	xh, a
+;	main.c: 97: ClearBit(flag,startbit);
+	bres	_flag+0, #4
+;	main.c: 98: if(resiver=='D'){
+	ld	a, xl
+	cp	a, #0x44
+	jrne	00142$
+;	main.c: 99: PD_ODR=0x01;
+	mov	0x500f+0, #0x01
+	jra	00145$
+00142$:
+;	main.c: 100: }else if(resiver=='A'){
+	ld	a, xl
+	cp	a, #0x41
+	jrne	00139$
+;	main.c: 101: PD_ODR=0x10;
+	mov	0x500f+0, #0x10
+	jra	00145$
+00139$:
+;	main.c: 102: }else if(resiver=='B'){
+	ld	a, xl
 	cp	a, #0x42
-	jrne	00118$
-;	main.c: 63: PD_ODR=0x04;
+	jrne	00136$
+;	main.c: 103: PD_ODR=0x04;
 	mov	0x500f+0, #0x04
-	jp	00101$
-00118$:
-;	main.c: 64: else if(resiver=='C')
-	ld	a, (0x03, sp)
+	jra	00145$
+00136$:
+;	main.c: 104: }else if(resiver=='C'){
+	ld	a, xl
 	cp	a, #0x43
-	jreq	00219$
-	jp	00101$
-00219$:
-;	main.c: 65: PD_ODR=0x08;
+	jrne	00145$
+;	main.c: 105: PD_ODR=0x08;
 	mov	0x500f+0, #0x08
-;	main.c: 68: }
-	jp	00101$
+00145$:
+;	main.c: 108: __asm__("rim\n");
+	rim
+;	main.c: 110: }
+	jp	00112$
 	.area CODE
 	.area CONST
 	.area INITIALIZER
-__xinit__timer:
+__xinit__flag:
 	.db #0x00	; 0
 	.area CABS (ABS)

@@ -8,15 +8,15 @@ void uart1_init(){
         UART1_BRR2 = 0x00;             
         UART1_BRR1 = 0x48;            
 }
-void tx(unsigned char *str){  
-    while (1){
+void tx(uint8_t *str){  
+    while (*str){
         while (!(UART1_SR & UART1_SR_TXE)) {}       
         UART1_DR=*str; 
-        if(*str=='\r') break;
+        //if(*str==0x80) break;
         *str++;
     }
 } 
-void rx(char *str){
+void rx(uint8_t *str){
     while (*str!='\r'){
         while ((UART1_SR & UART1_SR_RXNE)!=0){
             *str++;

@@ -1,3 +1,13 @@
+/*short data type*/
+typedef     signed char          int8_t ;
+typedef     unsigned char        uint8_t;
+typedef     signed int           int16_t;
+typedef     unsigned int         uint16_t;
+typedef     signed long int      int32_t;
+typedef     unsigned long int    uint32_t;
+//#define    int64_t     signed long long int
+//#define    uint64_t    unsigned long long int
+
 /* GPIO */
 #define PA_ODR *(unsigned char*)0x5000
 #define PA_IDR *(unsigned char*)0x5001

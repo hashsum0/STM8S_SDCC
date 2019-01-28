@@ -19,4 +19,5 @@ load:
 	stm8flash -c stlinkv2 -p stm8s003k3 -w main.ihx	
 
 clean:
-	@rm -v *.sym *.asm *.lst *.rel *lk *.rst *.cdb *.map	
+	@rm -v *.sym *.asm *.lst *.rel *lk *.rst *.cdb *.map
+	size -A main.ihx
