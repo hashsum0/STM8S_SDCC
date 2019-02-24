@@ -193,14 +193,14 @@ _tim_wait:
 ;	-----------------------------------------
 _tx_set_bit:
 ;	main.c: 22: out_set_bit;
-	bset	20495, #4
+	bset	20495, #5
 ;	main.c: 23: tim_wait(0x00,0x40);//0x00,0x0f
 	push	#0x40
 	push	#0x00
 	call	_tim_wait
 	addw	sp, #2
 ;	main.c: 24: out_cli_bit;
-	bres	20495, #4
+	bres	20495, #5
 ;	main.c: 25: tim_wait(0x00,0x20);//0x00,0x08
 	push	#0x20
 	push	#0x00
@@ -214,14 +214,14 @@ _tx_set_bit:
 ;	-----------------------------------------
 _tx_cli_bit:
 ;	main.c: 29: out_set_bit;
-	bset	20495, #4
+	bset	20495, #5
 ;	main.c: 30: tim_wait(0x00,0x20);//0x00,0x08
 	push	#0x20
 	push	#0x00
 	call	_tim_wait
 	addw	sp, #2
 ;	main.c: 31: out_cli_bit;
-	bres	20495, #4
+	bres	20495, #5
 ;	main.c: 32: tim_wait(0x00,0x20);//0x00,0x08
 	push	#0x20
 	push	#0x00
@@ -235,14 +235,14 @@ _tx_cli_bit:
 ;	-----------------------------------------
 _tx_start_bit:
 ;	main.c: 36: out_set_bit;
-	bset	20495, #4
+	bset	20495, #5
 ;	main.c: 37: tim_wait(0x00,0x80);//0x00,0x47
 	push	#0x80
 	push	#0x00
 	call	_tim_wait
 	addw	sp, #2
 ;	main.c: 38: out_cli_bit;
-	bres	20495, #4
+	bres	20495, #5
 ;	main.c: 39: tim_wait(0x00,0x20);//0x00,0x08
 	push	#0x20
 	push	#0x00
@@ -256,7 +256,7 @@ _tx_start_bit:
 ;	-----------------------------------------
 _tx_stop_bit:
 ;	main.c: 43: out_cli_bit;
-	bres	20495, #4
+	bres	20495, #5
 ;	main.c: 44: tim_wait(0x00,0x80);
 	push	#0x80
 	push	#0x00

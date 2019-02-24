@@ -1,8 +1,8 @@
 #include "inc/stm8s.h"
 #include "inc/clk_init.h"
 #include "inc/gpio_init.h"
-#define out_set_bit PD_ODR|=(1<<4)
-#define out_cli_bit PD_ODR&=~(1<<4)
+#define out_set_bit PD_ODR|=(1<<5)
+#define out_cli_bit PD_ODR&=~(1<<5)
 //#include "inc/uart1.h"
 //~ volatile unsigned int fl=0;
 //~ ///******************************************************timer_interrupt*/
